@@ -1,0 +1,1804 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Train Manouba — By Adem Sfar — Groupe 8</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Tahoma,sans-serif;background:#f4f6fb;color:#17203f}
+header{background:rgba(16,25,62,.97);color:#fff;padding:13px 16px;font-weight:700;display:flex;align-items:center;justify-content:space-between;box-shadow:0 8px 30px #10193f22}
+header .sub{font-size:.85rem;font-weight:500;opacity:.9;margin-top:3px}
+.panel{padding:12px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:#fff;border-bottom:1px solid #dde}
+select,button{font:inherit;padding:7px 10px;border-radius:8px;border:1px solid #99a}
+button{background:#1b2145;color:#fff;border:0;cursor:pointer}
+#map{height:55vh;min-height:300px;border-top:1px solid #dce1ef;box-shadow:inset 0 1px #fff}
+.info{padding:12px 16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.card{background:rgba(255,255,255,.96);border-radius:14px;padding:13px;box-shadow:0 7px 24px #18214d10;border:1px solid #e6e9f2;transition:transform .2s ease,box-shadow .2s ease}.card:hover{transform:translateY(-2px);box-shadow:0 12px 30px #18214d18}
+.card small{color:#667;display:block}
+.card b{font-size:1.05rem}
+#slider{width:100%}
+#msg{padding:0 16px 12px;color:#a00}
+
+
+
+/* ===== CINEMATIC TRANSIT LAUNCH ===== */
+#splash{position:fixed;inset:0;z-index:99999;overflow:hidden;background:#080a0d;color:#fff;display:flex;align-items:center;justify-content:center;opacity:1;visibility:visible;transition:opacity .75s cubic-bezier(.4,0,.2,1),visibility .75s}
+#splash.hide{opacity:0;visibility:hidden;pointer-events:none}
+.launch-bg{position:absolute;inset:0;background:radial-gradient(circle at 50% 42%,#252a31 0,#101318 42%,#07090c 100%)}
+.launch-noise{position:absolute;inset:0;opacity:.035;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.launch-glow{position:absolute;border-radius:50%;filter:blur(80px);opacity:.22}
+.g1{width:420px;height:420px;background:#ef6a3a;left:-220px;top:15%;animation:glowMove 7s ease-in-out infinite alternate}
+.g2{width:360px;height:360px;background:#d6a24b;right:-190px;bottom:-80px;animation:glowMove2 8s ease-in-out infinite alternate}
+.launch-top{position:absolute;top:28px;left:28px;right:28px;display:flex;justify-content:space-between;font-size:9px;letter-spacing:2.2px;color:#9ea4ad;animation:topIn .8s ease both}
+.launch-content{position:relative;z-index:2;width:min(90vw,430px);display:flex;flex-direction:column;align-items:center}
+.route-preview{width:100%;height:220px;position:relative;animation:routeIn2 1.2s cubic-bezier(.16,1,.3,1) both}
+.route-map{position:absolute;inset:0;filter:drop-shadow(0 20px 35px #0008)}
+.route-path{position:absolute;height:3px;border-radius:10px;transform-origin:left center;opacity:.75}
+.path-a{width:72%;left:11%;top:55%;background:#ef6a3a;transform:rotate(-11deg);animation:pathDraw 1.4s .3s ease both}
+.path-b{width:38%;left:43%;top:58%;background:#d6a24b;transform:rotate(21deg);animation:pathDraw 1.4s .55s ease both}
+.path-c{width:31%;left:18%;top:50%;background:#65b99b;transform:rotate(23deg);animation:pathDraw 1.4s .75s ease both}
+.station{position:absolute;display:flex;align-items:center;gap:6px;font-size:9px;color:#aeb4bc;white-space:nowrap}
+.station i{width:9px;height:9px;border:2px solid #fff;border-radius:50%;background:#161a20;box-shadow:0 0 0 4px #ffffff0c}
+.s1{left:7%;top:53%}.s2{left:33%;top:45%}.s3{left:60%;top:52%}.s4{left:79%;top:67%}
+.moving-train{position:absolute;left:11%;top:52%;width:26px;height:8px;border-radius:5px;background:#fff;box-shadow:0 0 20px #fff;animation:trainTravel 3.2s 1s cubic-bezier(.4,0,.2,1) infinite}
+.moving-train span{position:absolute;right:-5px;top:2px;width:4px;height:4px;border-radius:50%;background:#ef6a3a}
+.launch-copy{text-align:center;animation:copyIn 1s .35s cubic-bezier(.16,1,.3,1) both}
+.eyebrow{font-size:9px;letter-spacing:3px;color:#8e959e;margin-bottom:12px}
+.launch-copy h1{margin:0;font-size:clamp(48px,12vw,70px);line-height:.9;letter-spacing:-3px;font-weight:900}
+.launch-copy h1 span{color:#ef6a3a}
+.launch-copy p{margin:18px 0 0;color:#aeb4bc;font-size:14px;line-height:1.65}
+.launch-progress{width:100%;margin-top:30px;animation:copyIn 1s .6s ease both}
+.progress-bar{height:2px;background:#ffffff12;overflow:hidden;border-radius:10px}
+.progress-bar span{display:block;width:34%;height:100%;background:linear-gradient(90deg,transparent,#ef6a3a,#fff,#ef6a3a,transparent);animation:progressMove 1.7s ease-in-out infinite}
+.launch-progress>div:last-child{display:flex;justify-content:space-between;margin-top:9px;color:#727983;font-size:9px;letter-spacing:1px}
+@keyframes glowMove{to{transform:translate(180px,-60px) scale(1.2)}}
+@keyframes glowMove2{to{transform:translate(-130px,-120px) scale(1.2)}}
+@keyframes topIn{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:none}}
+@keyframes routeIn2{from{opacity:0;transform:translateY(30px) scale(.92);filter:blur(8px)}to{opacity:1;transform:none;filter:none}}
+@keyframes pathDraw{from{transform-origin:left;transform:scaleX(0) rotate(-11deg)}to{transform-origin:left;transform:scaleX(1) rotate(-11deg)}}
+@keyframes copyIn{from{opacity:0;transform:translateY(24px);filter:blur(8px)}to{opacity:1;transform:none;filter:none}}
+@keyframes trainTravel{0%{left:10%;opacity:0}8%{opacity:1}88%{opacity:1}100%{left:82%;opacity:0}}
+@keyframes progressMove{from{transform:translateX(-180%)}to{transform:translateX(480%)}}
+@media(max-width:420px){.route-preview{height:190px}.station{font-size:8px}.launch-top{left:18px;right:18px}}
+.brand{display:flex;align-items:center;gap:10px}
+.mini-logo{width:38px;height:38px;border-radius:12px;background:#ffffff18;display:grid;place-items:center}
+.brand strong{display:block;font-size:16px}
+.brand small{display:block;font-size:11px;opacity:.7;margin-top:2px}
+.status-pill{font-size:11px;background:#ffffff18;border-radius:20px;padding:5px 9px;color:#dfffe5}
+.welcome{margin:12px 16px 0;padding:16px;border-radius:16px;background:linear-gradient(135deg,#fff,#eef2ff);display:flex;justify-content:space-between;align-items:center;gap:12px;box-shadow:0 2px 10px #0000000b}
+.welcome h2{margin:0 0 5px;font-size:20px}
+.welcome p{margin:0;color:#68708b;font-size:13px;line-height:1.5}
+#locate{background:#fff;color:#1b2145;border:1px solid #d5d9e6;white-space:nowrap}
+.controls{margin-top:10px}
+@media(max-width:600px){.welcome{align-items:flex-start}.welcome p{max-width:240px}.welcome h2{font-size:17px}}
+
+/* ===== REAL TRANSIT UI REDESIGN ===== */
+:root{
+  --ink:#172033;
+  --muted:#6d7484;
+  --paper:#ffffff;
+  --soft:#f5f6f8;
+  --line:#e3e6eb;
+  --accent:#ef6a3a;
+  --accent-dark:#c84d22;
+  --green:#16845b;
+  --red:#c84a43;
+}
+body{
+  background:#f3f4f6;
+  color:var(--ink);
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+}
+header{
+  background:#171b23;
+  padding:12px 18px;
+  border-bottom:1px solid #0d1016;
+  box-shadow:0 4px 18px #0002;
+}
+.brand{gap:11px}
+.mini-logo{
+  width:40px;height:40px;border-radius:11px;
+  background:#242a35;border:1px solid #3a414d;
+  font-size:20px;
+}
+.brand strong{
+  font-size:16px;letter-spacing:-.3px;
+}
+.brand small{
+  color:#aeb4c0;
+}
+.status-pill{
+  background:#203328;
+  color:#72e0ae;
+  border:1px solid #31563f;
+  font-weight:700;
+}
+.welcome{
+  margin:14px 16px 10px;
+  padding:18px;
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:18px;
+  box-shadow:0 7px 25px #1118270a;
+}
+.welcome h2{
+  font-size:21px;
+  letter-spacing:-.5px;
+  color:#141923;
+}
+.welcome p{
+  color:#707887;
+}
+#locate{
+  background:#171b23;
+  color:#fff;
+  border:0;
+  border-radius:11px;
+  padding:9px 13px;
+}
+.controls{
+  margin:0 16px 10px;
+  border:1px solid var(--line);
+  border-radius:15px;
+  box-shadow:0 5px 20px #11182708;
+}
+.controls select,.controls button{
+  border-radius:10px;
+  border:1px solid #d8dce3;
+  background:#fff;
+  color:#222937;
+}
+.controls button{
+  background:var(--accent);
+  border-color:var(--accent);
+  color:#fff;
+  font-weight:700;
+}
+.controls button:hover{background:var(--accent-dark)}
+#speed{min-width:70px}
+#map{
+  margin:0 16px;
+  width:calc(100% - 32px);
+  height:52vh;
+  min-height:320px;
+  border-radius:18px;
+  border:1px solid #dfe2e7;
+  overflow:hidden;
+  box-shadow:0 10px 30px #11182712;
+}
+.info{
+  padding:12px 16px 16px;
+}
+.card{
+  border-radius:14px;
+  border:1px solid var(--line);
+  box-shadow:0 5px 18px #11182709;
+  padding:13px 14px;
+}
+.card small{color:#7b8290}
+.card b{color:#171c26}
+#msg{
+  color:#b13c32;
+}
+
+/* ===== SPLASH: warm, premium, non-blue brand ===== */
+#splash{
+  background:
+    radial-gradient(circle at 50% 45%,#343a42 0,#1d2229 32%,#0b0d11 78%);
+}
+.splash-grid{
+  opacity:.08;
+  background-image:
+    linear-gradient(#fff 1px,transparent 1px),
+    linear-gradient(90deg,#fff 1px,transparent 1px);
+}
+.orb-a{background:#e95f32}
+.orb-b{background:#d8a24b}
+.route-line{background:linear-gradient(90deg,transparent,#ef6a3a66,transparent)}
+.route-line span,.route-line i,.route-line b,.route-line em{
+  background:#ef6a3a;
+  box-shadow:0 0 18px #ef6a3a;
+}
+.brand-mark{
+  background:linear-gradient(145deg,#ffffff12,#ffffff03);
+  border-color:#ffffff22;
+}
+.signal{background:#45d394;box-shadow:0 0 18px #45d394}
+.app-name span{
+  color:#c7cbd1;
+  opacity:.8;
+}
+.app-name strong{
+  /* No blue: warm white / orange metallic feel */
+  background:linear-gradient(105deg,#fff 0%,#fff 30%,#ffad7c 53%,#fff 74%,#e9e1d8 100%);
+  background-size:220% auto;
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+}
+.creator{color:#c7cbd1}
+.launch-line{background:#ffffff18}
+.launch-line span{background:linear-gradient(90deg,transparent,#ff8a5c,transparent)}
+.launch-text{color:#8d939d}
+
+/* ===== EXPLANATION / HIERARCHY ===== */
+.section-label{
+  margin:10px 16px 8px;
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:1.3px;
+  color:#8a909a;
+  font-weight:800;
+}
+
+/* ===== V2 PREMIUM MOTION ===== */
+:root{--gold:#e9b872;--tc:#ef6a3a;--navy:#0e1424;--ease:cubic-bezier(.16,1,.3,1)}
+html{scroll-behavior:smooth}
+body{background:linear-gradient(160deg,#f7f2ea 0,#eef1f7 55%,#f4eee6 100%);background-size:200% 200%;animation:bgShift 18s ease-in-out infinite alternate;overflow-x:hidden}
+body::before,body::after{content:"";position:fixed;z-index:-1;border-radius:50%;filter:blur(90px);opacity:.28;pointer-events:none}
+body::before{width:380px;height:380px;background:#ef6a3a;top:-120px;right:-100px;animation:orbA 14s ease-in-out infinite alternate}
+body::after{width:340px;height:340px;background:#e9b872;bottom:-120px;left:-100px;animation:orbB 16s ease-in-out infinite alternate}
+@keyframes bgShift{to{background-position:100% 100%}}
+@keyframes orbA{to{transform:translate(-120px,160px) scale(1.25)}}
+@keyframes orbB{to{transform:translate(160px,-140px) scale(1.2)}}
+/* splash */
+#splash{transition:opacity .9s var(--ease),visibility .9s,transform .9s var(--ease),filter .9s}
+#splash.hide{transform:scale(1.12);filter:blur(12px)}
+#splash.hide .launch-content{transform:translateY(-24px) scale(.92);opacity:0}
+.launch-content{transition:transform .8s var(--ease),opacity .6s}
+.launch-bg::after{content:"";position:absolute;inset:0;background:conic-gradient(from 0deg at 50% 45%,transparent,#ef6a3a14,transparent 30%);animation:spin 9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.pt{position:absolute;bottom:-10px;width:3px;height:3px;border-radius:50%;background:#ffb184;opacity:0;animation:rise linear infinite}
+@keyframes rise{10%{opacity:.8}to{transform:translateY(-105vh) translateX(var(--x));opacity:0}}
+.route-path{filter:drop-shadow(0 0 7px currentColor)}
+.path-a{color:#ef6a3a}.path-b{color:#d6a24b}.path-c{color:#65b99b}
+.station i{animation:stPulse 2.2s ease-in-out infinite}
+.s2 i{animation-delay:.4s}.s3 i{animation-delay:.8s}.s4 i{animation-delay:1.2s}
+.station{animation:copyIn .8s both}.s1{animation-delay:.6s}.s2{animation-delay:.9s}.s3{animation-delay:1.2s}.s4{animation-delay:1.5s}
+@keyframes stPulse{0%,100%{box-shadow:0 0 0 3px #ffffff0c}50%{box-shadow:0 0 0 9px #ef6a3a22;border-color:#ffb184}}
+.ch{display:inline-block;font-style:normal;animation:chIn .8s calc(.5s + var(--i)*70ms) cubic-bezier(.2,.9,.3,1.4) both}
+@keyframes chIn{from{opacity:0;transform:translateY(40px) rotateX(70deg);filter:blur(8px)}to{opacity:1;transform:none;filter:none}}
+.launch-copy h1{background:linear-gradient(100deg,#fff 40%,#ffd2b8 50%,#fff 60%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;animation:shine 3.2s 1.6s ease-in-out infinite}
+.launch-copy h1 .ch{-webkit-text-fill-color:currentColor}
+.launch-copy h1 span .ch{color:#ef6a3a}
+@keyframes shine{from{background-position:130% 0}to{background-position:-130% 0}}
+.launch-copy p{animation:copyIn 1s 1.1s var(--ease) both}
+#lstat{text-align:center;margin-top:14px;font-size:10px;letter-spacing:2px;color:#8d939d;height:14px;animation:copyIn 1s .9s both}
+#lstat.ok{color:#45d394}
+/* reveal */
+.rv{opacity:0;transform:translateY(34px) scale(.97);filter:blur(6px);transition:opacity .9s var(--ease),transform .9s var(--ease),filter .9s var(--ease);transition-delay:calc(var(--d,0)*90ms)}
+.rv.in{opacity:1;transform:none;filter:none}
+/* header */
+header{position:sticky;top:0;z-index:1200;background:linear-gradient(110deg,#0b101d,#1b2540,#0b101d);background-size:220% 100%;animation:bgShift 9s linear infinite alternate;overflow:hidden}
+header::after{content:"";position:absolute;bottom:0;left:0;height:2px;width:40%;background:linear-gradient(90deg,transparent,#ef6a3a,#e9b872,transparent);animation:sweep 3.4s ease-in-out infinite}
+@keyframes sweep{from{transform:translateX(-120%)}to{transform:translateX(260%)}}
+.mini-logo{animation:bob 2.6s ease-in-out infinite;box-shadow:0 0 0 0 #ef6a3a55}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(-3deg);box-shadow:0 0 0 0 #ef6a3a44}50%{transform:translateY(-3px) rotate(3deg);box-shadow:0 0 0 9px #ef6a3a00}}
+.status-pill{animation:live 1.8s ease-in-out infinite}
+@keyframes live{0%,100%{box-shadow:0 0 0 0 #45d39455}50%{box-shadow:0 0 0 8px #45d39400;color:#a7ffd3}}
+/* welcome */
+.welcome{position:relative;overflow:hidden;background:linear-gradient(135deg,#fff,#fbf5ee);transition:transform .4s var(--ease),box-shadow .4s}
+.welcome:hover{transform:translateY(-3px);box-shadow:0 18px 40px #ef6a3a1a}
+.welcome::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:linear-gradient(90deg,transparent,#ef6a3a,#e9b872,transparent);background-size:200% 100%;animation:flow 2.6s linear infinite}
+.welcome::before{content:"🚆";position:absolute;bottom:5px;left:-30px;font-size:15px;animation:ride 8s linear infinite;opacity:.8}
+@keyframes flow{to{background-position:-200% 0}}
+@keyframes ride{to{left:105%}}
+.welcome h2{background:linear-gradient(100deg,#141923 30%,#ef6a3a 50%,#141923 70%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 5s ease-in-out infinite}
+/* buttons */
+button{position:relative;overflow:hidden;transition:transform .25s var(--ease),box-shadow .25s,background .3s}
+button:hover{transform:translateY(-2px);box-shadow:0 8px 18px #0003}
+button:active{transform:scale(.94)}
+.rp{position:absolute;border-radius:50%;background:#fff6;transform:scale(0);animation:rip .7s ease-out forwards;pointer-events:none}
+@keyframes rip{to{transform:scale(4);opacity:0}}
+#play.playing{animation:playPulse 1.4s ease-in-out infinite}
+@keyframes playPulse{0%,100%{box-shadow:0 0 0 0 var(--tc)}50%{box-shadow:0 0 0 10px #ef6a3a00}}
+#locate::before{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,#fff3 50%,transparent 70%);transform:translateX(-120%);animation:glint 3.5s infinite}
+@keyframes glint{to{transform:translateX(120%)}}
+select{transition:border-color .3s,box-shadow .3s}
+select:focus{outline:0;box-shadow:0 0 0 4px #ef6a3a22!important}
+.panel{background:rgba(255,255,255,.82);backdrop-filter:blur(10px)}
+/* section label */
+.section-label{position:relative;display:inline-block;padding-bottom:5px;color:#5d6472}
+.section-label::after{content:"";position:absolute;right:0;bottom:0;height:2px;width:0;background:linear-gradient(90deg,#ef6a3a,#e9b872);transition:width 1.1s .3s var(--ease)}
+.section-label.in::after{width:100%}
+.legend span{transition:transform .3s}.legend span:hover{transform:translateY(-2px)}
+/* slider */
+#slider{-webkit-appearance:none;appearance:none;height:8px;border-radius:9px;outline:0;cursor:pointer;background:linear-gradient(90deg,var(--tc) var(--p,0%),#e3e6eb var(--p,0%))}
+#slider::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#fff;border:4px solid var(--tc);box-shadow:0 0 0 6px #ef6a3a22,0 4px 10px #0003;transition:transform .2s}
+#slider::-webkit-slider-thumb:hover{transform:scale(1.25)}
+#slider::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#fff;border:4px solid var(--tc)}
+/* map */
+#map{box-shadow:0 20px 50px #0e142422,0 0 0 1px #fff inset;transition:box-shadow .5s}
+#map.rv{clip-path:inset(0 0 100% 0 round 18px)}#map.rv.in{clip-path:inset(0 round 18px);transition:clip-path 1.3s var(--ease),opacity .6s}
+.leaflet-tile-pane{filter:saturate(.8) contrast(1.03) sepia(.08)}
+.leaflet-tile{transition:opacity .6s}
+.route-ghost{stroke-dasharray:3 13;stroke-linecap:round;animation:dash 1.1s linear infinite}
+.route-done{filter:drop-shadow(0 0 6px var(--tc));stroke-linecap:round}
+@keyframes dash{to{stroke-dashoffset:-32}}
+.tp{width:44px;height:44px;position:relative;display:grid;place-items:center}
+.tp b{font-size:21px;z-index:2;filter:drop-shadow(0 3px 4px #0005);animation:bob 1.6s ease-in-out infinite}
+.tp i{position:absolute;inset:6px;border-radius:50%;background:var(--tc);opacity:.35;animation:ring 1.8s ease-out infinite}
+.tp i+i{animation-delay:.9s}
+@keyframes ring{to{transform:scale(2.4);opacity:0}}
+.gliding .leaflet-marker-icon.tp-wrap{transition:transform .95s linear}
+.stn{width:16px;height:16px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px #0004;animation:stPop .7s var(--ease) both,stBeat 2.4s 1s infinite}
+@keyframes stPop{from{transform:scale(0)}}
+@keyframes stBeat{50%{box-shadow:0 0 0 9px #ef6a3a00,0 2px 8px #0004}}
+.leaflet-tooltip{border-radius:10px;border:0;box-shadow:0 8px 20px #0003;font-weight:700}
+/* cards */
+.card{position:relative;overflow:hidden;background:linear-gradient(160deg,#fff,#faf7f2)}
+.card::before{content:"";position:absolute;top:0;right:0;left:0;height:3px;background:linear-gradient(90deg,var(--tc),var(--gold));transform:scaleX(.25);transform-origin:right;transition:transform .6s var(--ease)}
+.card:hover::before{transform:scaleX(1)}
+.card:hover{transform:translateY(-5px) scale(1.02)}
+.card b{display:inline-block}
+.card b.tick{animation:tick .7s var(--ease)}
+@keyframes tick{0%{opacity:0;transform:translateY(14px);color:#ef6a3a}100%{opacity:1;transform:none}}
+#msg:not(:empty){animation:copyIn .6s both}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01s!important;animation-iteration-count:1!important;transition-duration:.01s!important}}
+
+/* ===== V3 COSMOS ===== */
+@property --ang{syntax:'<angle>';initial-value:0deg;inherits:false}
+@keyframes angSpin{to{--ang:360deg}}
+#stars{position:fixed;inset:0;width:100%;height:100%;z-index:-2;pointer-events:none;opacity:0;transition:opacity 1.2s}
+body.cosmos #stars{opacity:1}
+.planet{position:fixed;right:5%;top:20%;width:130px;height:130px;border-radius:50%;z-index:-1;pointer-events:none;opacity:0;transition:opacity 1.5s;background:radial-gradient(circle at 30% 30%,#ffd3b0,#ef6a3a 38%,#5b2a86 78%,#1a0b33);box-shadow:0 0 70px #ef6a3a66,inset -18px -14px 30px #0008;animation:planetFloat 9s ease-in-out infinite alternate}
+.planet::after{content:"";position:absolute;left:-45%;right:-45%;top:38%;height:24%;border-radius:50%;border:3px solid #e9b87299;transform:rotate(-18deg);box-shadow:0 0 18px #e9b87255}
+body.cosmos .planet{opacity:.85}
+@keyframes planetFloat{to{transform:translateY(60px) rotate(8deg) scale(1.08)}}
+#sp{position:fixed;top:0;left:0;right:0;height:3px;z-index:1300;background:linear-gradient(90deg,#ef6a3a,#e9b872,#27d3ff);transform:scaleX(0);transform-origin:left}
+#cur{position:fixed;left:0;top:0;width:260px;height:260px;margin:-130px;border-radius:50%;pointer-events:none;z-index:1;background:radial-gradient(circle,#ef6a3a22,transparent 65%);opacity:0;transition:opacity .4s}
+@media(pointer:coarse){#cur{display:none}}
+#mode{background:#ffffff14;border:1px solid #ffffff2a;border-radius:20px;padding:5px 10px;margin-inline-end:8px}
+.hr{display:flex;align-items:center}
+#toast{position:fixed;left:50%;bottom:26px;z-index:3000;transform:translate(-50%,120px);background:linear-gradient(135deg,#171b2f,#2a1f4d);color:#fff;border:1px solid #ffffff2a;padding:12px 20px;border-radius:30px;font-weight:700;box-shadow:0 14px 40px #000a,0 0 30px #ef6a3a44;transition:transform .7s var(--ease),opacity .5s;opacity:0;white-space:nowrap}
+#toast.show{transform:translate(-50%,0);opacity:1}
+#fw{position:fixed;inset:0;width:100%;height:100%;z-index:2900;pointer-events:none}
+.spark{animation:spk 1.3s ease-out forwards;transform-box:fill-box;transform-origin:center}
+@keyframes spk{to{opacity:0;transform:scale(3.2)}}
+.gauge svg{display:block;width:100%;max-width:130px;margin:2px auto -6px;overflow:visible}
+.gauge path,.gauge circle{fill:none;stroke-width:8;stroke-linecap:round}
+.gbg{stroke:#8a909a33}.gfill{stroke:url(#gg);stroke-dasharray:125.66;stroke-dashoffset:125.66;transition:stroke-dashoffset .9s var(--ease);filter:drop-shadow(0 0 5px var(--tc))}
+.gauge{text-align:center}.ring{width:64px!important;margin:0 auto!important}
+.rfill{stroke:var(--tc);stroke-dasharray:113.1;stroke-dashoffset:113.1;transition:stroke-dashoffset .9s var(--ease);transform:rotate(-90deg);transform-origin:center}
+/* cosmos theme */
+body.cosmos{background:radial-gradient(ellipse at 50% -10%,#1f1450 0,#0a0d24 48%,#04050f 100%);background-size:200% 200%;color:#e8ecff}
+body.cosmos #cur{opacity:1}
+body.cosmos::before{background:#7b5cff}body.cosmos::after{background:#27d3ff;opacity:.2}
+body.cosmos .welcome{border:1.5px solid transparent;background:linear-gradient(#0f1533,#0f1533) padding-box,conic-gradient(from var(--ang),#ef6a3a,#7b5cff,#27d3ff,#ef6a3a) border-box;animation:angSpin 5s linear infinite;box-shadow:0 0 40px #7b5cff22}
+body.cosmos .welcome h2{background-image:linear-gradient(100deg,#fff 30%,#ffb184 50%,#fff 70%)}
+body.cosmos .welcome p,body.cosmos .legend,body.cosmos .legend b{color:#9fb0e0!important}
+body.cosmos .section-label{color:#8fa0d0}
+body.cosmos .panel,body.cosmos .controls{background:rgba(16,22,52,.6);border-color:#ffffff1a}
+body.cosmos .controls select,body.cosmos #speed{background:#0d1230;color:#fff;border-color:#ffffff2a}
+body.cosmos #locate{background:linear-gradient(135deg,#ef6a3a,#7b5cff)}
+body.cosmos .card{background:linear-gradient(160deg,#141a3a,#0d1230);border-color:#ffffff1a;box-shadow:0 10px 30px #0008}
+body.cosmos .card small{color:#8fa0d0}body.cosmos .card b{color:#fff;text-shadow:0 0 14px var(--tc)}
+body.cosmos #slider{background:linear-gradient(90deg,var(--tc) var(--p,0%),#ffffff1c var(--p,0%))}
+body.cosmos #map{border-color:#ffffff1a;box-shadow:0 0 0 1px #7b5cff44,0 20px 60px #7b5cff33}
+body.cosmos .leaflet-tile-pane{filter:invert(1) hue-rotate(200deg) saturate(.7) brightness(.82) contrast(.95)}
+body.cosmos .route-done{filter:drop-shadow(0 0 10px var(--tc)) drop-shadow(0 0 22px var(--tc))}
+body.cosmos .stn{border-color:#fff;box-shadow:0 0 14px #fff8}
+body.cosmos #msg{color:#ff9d92}
+
+/* ===== V4 REAL SCENE + BUTTONS + SECTIONS ===== */
+:root{--arr:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9'%3E%3Cpath d='M1 1l6 6 6-6' fill='none' stroke='%23ef6a3a' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E")}
+#scene{position:fixed;inset:0;width:100%;height:100%;z-index:-3;pointer-events:none}
+#stars,.planet,body::before,body::after{display:none!important}
+.card{background:rgba(255,255,255,.72);backdrop-filter:blur(12px)}
+body.cosmos .card{background:linear-gradient(160deg,rgba(22,28,62,.74),rgba(10,14,36,.62));backdrop-filter:blur(14px)}
+body.cosmos .welcome{background:linear-gradient(rgba(14,20,50,.72),rgba(14,20,50,.72)) padding-box,conic-gradient(from var(--ang),#ef6a3a,#7b5cff,#27d3ff,#ef6a3a) border-box;backdrop-filter:blur(10px)}
+.welcome{background:rgba(255,255,255,.78);backdrop-filter:blur(10px)}
+button{font-family:inherit;font-weight:800;letter-spacing:.3px;cursor:pointer}
+#play,#locate{min-height:46px;padding:0 24px;border:1px solid #ffffff44;border-radius:15px;color:#fff;background:linear-gradient(135deg,#ff8a50,#ef4f5f);box-shadow:inset 0 1px 0 #fff7,0 4px 0 #b13a2c,0 14px 26px #ef4f5f55;text-shadow:0 1px 2px #0005}
+#locate,body.cosmos #locate{background:linear-gradient(135deg,#27c6e8,#6a5cff);box-shadow:inset 0 1px 0 #fff7,0 4px 0 #3a3fb0,0 14px 26px #6a5cff55}
+#play:hover,#locate:hover{transform:translateY(-3px);filter:brightness(1.1)}
+#play:active,#locate:active{transform:translateY(3px);box-shadow:inset 0 1px 0 #fff6,0 1px 0 #0004,0 4px 8px #0004}
+#play::after,#locate::after{content:"";position:absolute;top:0;bottom:0;width:38%;left:-60%;background:linear-gradient(100deg,transparent,#fff6,transparent);transform:skewX(-20deg);transition:left .8s}
+#play:hover::after,#locate:hover::after{left:140%}
+#locate::before{display:none}
+#play.playing{background:linear-gradient(135deg,#2fe0a8,#0f9b74);box-shadow:inset 0 1px 0 #fff7,0 4px 0 #0a6e52,0 14px 26px #0f9b7466}
+#mode{width:40px;height:40px;padding:0;border-radius:50%;display:grid;place-items:center;font-size:17px;background:#ffffff18;border:1px solid #ffffff30}
+select,body.cosmos .controls select,body.cosmos #speed{-webkit-appearance:none;appearance:none;border-radius:13px;padding:11px 14px 11px 36px;font-weight:700;font-family:inherit;background-image:var(--arr);background-repeat:no-repeat;background-position:13px center;cursor:pointer}
+body.cosmos .controls select,body.cosmos #speed{background-color:#0d1230}
+.sec{margin:26px 16px 0}
+.sec h3{margin:0 0 12px;font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px}
+.sec h3::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--tc),transparent)}
+.gl{background:rgba(255,255,255,.72);backdrop-filter:blur(12px);border:1px solid #ffffff55;border-radius:18px;padding:14px;box-shadow:0 10px 30px #0e142418}
+body.cosmos .gl{background:linear-gradient(160deg,rgba(22,28,62,.72),rgba(10,14,36,.6));border-color:#ffffff1a;color:#e8ecff}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:12px}
+.stat{padding:14px;border-radius:16px;text-align:center;transition:transform .35s var(--ease)}.stat:hover{transform:translateY(-4px)}
+.stat i{font-style:normal;font-size:22px;display:block}.stat small{display:block;opacity:.65;margin:4px 0;font-size:11px}.stat b{font-size:22px;background:linear-gradient(120deg,var(--tc),var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent}
+.chart{position:relative;touch-action:none;cursor:crosshair}.chart svg{width:100%;height:150px;display:block}
+.ln{fill:none;stroke-dasharray:2600;stroke-dashoffset:2600}.in .ln{animation:draw 2.2s var(--ease) .2s forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.cs{stroke:#fff;stroke-width:1.5;stroke-dasharray:4 4;vector-effect:non-scaling-stroke;filter:drop-shadow(0 0 4px var(--tc))}
+.bar{transform-box:fill-box;transform-origin:center bottom;animation:grow .8s calc(var(--i)*10ms) both paused}.in .bar{animation-play-state:running}
+@keyframes grow{from{transform:scaleY(0)}}
+.cap{display:flex;justify-content:space-between;font-size:11px;opacity:.6;margin-top:6px}
+.tl{position:relative;padding-right:26px}.tl::before{content:"";position:absolute;right:9px;top:8px;bottom:8px;width:3px;border-radius:3px;background:#8a909a33}
+.tl .fillb{position:absolute;right:9px;top:8px;width:3px;border-radius:3px;background:linear-gradient(var(--tc),var(--gold));box-shadow:0 0 10px var(--tc);height:0;transition:height .9s var(--ease)}
+.ti{position:relative;padding:10px 0;display:flex;justify-content:space-between;align-items:center;cursor:pointer;opacity:.55;transition:opacity .4s,transform .4s}
+.ti::before{content:"";position:absolute;right:-24px;top:50%;width:13px;height:13px;margin-top:-6px;border-radius:50%;background:#2a3050;border:3px solid #8a909a66;transition:.4s}
+.ti.done{opacity:1}.ti.done::before{background:var(--tc);border-color:#fff;box-shadow:0 0 12px var(--tc)}
+.ti.act{transform:translateX(-6px)}.ti.act::before{animation:stBeat 1.6s infinite}
+.ti b{font-size:14px}.ti span{font-size:12px;opacity:.75;direction:ltr}
+.net{display:block;padding:12px 14px;margin-bottom:10px;border-radius:14px;border:1px solid #ffffff22;border-right:4px solid var(--c);cursor:pointer;transition:transform .3s var(--ease),box-shadow .3s}
+.net:hover{transform:translateX(-6px);box-shadow:0 8px 24px #0003}.net.on{background:#ffffff14;box-shadow:0 0 0 1px var(--c),0 0 22px var(--c)}
+.net div{direction:ltr;font-size:12px;margin-top:6px;opacity:.85;line-height:1.9}
+.ft{margin:34px 16px 30px;text-align:center;font-size:11px;opacity:.65;position:relative;padding-top:18px}
+.ft::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:repeating-linear-gradient(90deg,var(--tc) 0 14px,transparent 14px 28px);animation:flow 1.4s linear infinite;background-size:28px 2px}
+
+/* ===== V5 ENTER-BY-SCROLL + LTR FIX ===== */
+.launch-copy h1,.launch-copy .eyebrow{direction:ltr;unicode-bidi:isolate}
+body.locked{overflow:hidden;height:100vh}
+#splash{touch-action:none}
+#splash.hide{transform:translateY(-100%);filter:none;opacity:1;transition:transform 1.1s cubic-bezier(.7,0,.2,1),visibility 0s 1.1s}
+#splash.hide .launch-content{transform:translateY(-70px) scale(.94);opacity:0}
+#enter{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);z-index:5;text-align:center;color:#c7cbd1;cursor:pointer;animation:copyIn 1s 2.2s both}
+#enter b{display:block;font-size:13px;font-weight:800;color:#fff}
+#enter small{display:block;font-size:9px;letter-spacing:3px;color:#8d939d;margin-top:3px}
+#enter i{display:block;width:13px;height:13px;border-right:2px solid #ef6a3a;border-bottom:2px solid #ef6a3a;margin:2px auto -6px;opacity:0;transform:rotate(45deg);animation:chev 1.5s infinite}
+#enter i+i{animation-delay:.25s}
+@keyframes chev{0%{opacity:0;transform:translateY(-8px) rotate(45deg)}50%{opacity:1}100%{opacity:0;transform:translateY(8px) rotate(45deg)}}
+</style>
+</head>
+<body>
+
+<div id="splash">
+  <div class="launch-bg">
+    <div class="launch-noise"></div>
+    <div class="launch-glow g1"></div>
+    <div class="launch-glow g2"></div>
+  </div>
+
+  <div class="launch-top">
+    <span>TRAIN MANOUBA</span>
+    <span>LIVE NETWORK</span>
+  </div>
+
+  <div id="enter"><b>انزل باش تدخل</b><small>SCROLL TO ENTER</small><i></i><i></i></div>
+
+  <div class="launch-content">
+    <div class="route-preview">
+      <div class="route-map">
+        <div class="route-path path-a"></div>
+        <div class="route-path path-b"></div>
+        <div class="route-path path-c"></div>
+        <div class="station s1"><i></i><span>Manouba</span></div>
+        <div class="station s2"><i></i><span>Denden</span></div>
+        <div class="station s3"><i></i><span>Mnihla</span></div>
+        <div class="station s4"><i></i><span>Ariana</span></div>
+        <div class="moving-train"><span></span></div>
+      </div>
+    </div>
+
+    <div class="launch-copy">
+      <div class="eyebrow">SMART TRAIN TRACKING</div>
+      <h1><span>Train</span> Manouba</h1>
+      <p>من منوبة إلى محطتك القادمة<br>تابع القطار لحظة بلحظة.</p>
+    </div>
+
+    <div class="launch-progress">
+      <div class="progress-bar"><span></span></div>
+      <div><span>By Adem Sfar</span><span>Groupe 8</span></div>
+    </div>
+  </div>
+</div></div>
+
+<header>
+  <div class="brand">
+    <div class="mini-logo">🚆</div>
+    <div>
+      <strong>Train Manouba</strong>
+      <small>By Adem Sfar — Groupe 8</small>
+    </div>
+  </div>
+  <div class="hr"><button id="mode" aria-label="mode">☀️</button><div class="status-pill">● LIVE</div></div>
+</header>
+
+<div class="welcome">
+  <div>
+    <h2>منين لوين؟</h2>
+    <p>التطبيق يوريك مسار كل قطار من آخر محطة إلى المحطة القادمة، مع موقعه ووقت الوصول والتأخير.</p>
+  </div>
+  <button id="locate">📍 موقعي</button>
+</div>
+
+<div class="section-label">Contrôle du trajet</div>
+<div class="panel controls">
+  <label>🚆 القطار:
+    <select id="train"></select>
+  </label>
+  <button id="play">▶ تشغيل الحركة</button>
+  <select id="speed" aria-label="سرعة الحركة">
+    <option value="1">×1</option>
+    <option value="5" selected>×5</option>
+    <option value="20">×20</option>
+  </select>
+</div>
+
+<div class="panel">
+  <input type="range" id="slider" min="0" max="0" value="0" disabled>
+</div>
+
+<div id="map"></div>
+
+<div class="section-label">معلومات الرحلة</div>
+<div class="legend" style="margin:0 16px 2px;display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:#707887">
+  <span>● <b style="color:#ef6a3a">الخط</b> = مسار القطار</span>
+  <span>📍 <b style="color:#222937">الموقع</b> = مكانك</span>
+  <span>🟢 <b style="color:#16845b">0 د</b> = في الموعد</span>
+</div>
+<div class="info">
+  <div class="card"><small>الوقت</small><b id="t">—</b></div>
+  <div class="card"><small>المحطة التالية</small><b id="next">—</b></div>
+  <div class="card"><small>وقت الوصول المقدّر</small><b id="eta">—</b></div>
+  <div class="card"><small>التأخير</small><b id="delay">—</b></div>
+</div>
+
+<div id="msg"></div>
+
+<script>
+const EMBEDDED_CSV = `timestamp_local,train_id,trip_id,latitude,longitude,speed_kmh,heading_deg,direction,status,last_station,next_station,next_station_scheduled_arrival,delay_min
+2026-07-27 05:30:00,1,20260727-T1-01,36.808915,10.086302,0.0,78.0,outbound,terminal_wait,Manouba,Denden,2026-07-27 05:33,0
+2026-07-27 05:35:00,1,20260727-T1-01,36.813773,10.108764,22.6,9.0,outbound,moving,Denden,Mnihla,2026-07-27 05:40,0.2
+2026-07-27 05:35:00,2,20260727-T2-01,36.808865,10.086256,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 05:42,0
+2026-07-27 05:40:00,1,20260727-T1-01,36.847761,10.115702,2.1,9.0,outbound,moving,Denden,Mnihla,2026-07-27 05:40,0.2
+2026-07-27 05:40:00,2,20260727-T2-01,36.836147,10.106928,55.8,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 05:42,0
+2026-07-27 05:40:00,3,20260727-T3-01,36.866501,10.164719,0.0,307.0,outbound,terminal_wait,Ariana,Borj Louzir,2026-07-27 05:45,0
+2026-07-27 05:45:00,1,20260727-T1-01,36.856065,10.137385,59.8,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 05:59,0.0
+2026-07-27 05:45:00,2,20260727-T2-01,36.848849,10.116305,19.3,24.0,outbound,moving,Mnihla,Borj Louzir,2026-07-27 06:00,0.2
+2026-07-27 05:45:00,3,20260727-T3-01,36.883981,10.136041,3.0,307.0,outbound,moving,Ariana,Borj Louzir,2026-07-27 05:45,0
+2026-07-27 05:45:00,4,20260727-T4-01,36.808933,10.08637,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 05:52,0
+2026-07-27 05:50:00,1,20260727-T1-02,36.866488,10.164707,0.0,245.0,inbound,terminal_wait,Ariana,Mnihla,2026-07-27 06:06,0.0
+2026-07-27 05:50:00,2,20260727-T2-01,36.879827,10.133691,38.1,24.0,outbound,moving,Mnihla,Borj Louzir,2026-07-27 06:00,0.2
+2026-07-27 05:50:00,3,20260727-T3-01,36.88803,10.119491,45.1,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 06:11,0.2
+2026-07-27 05:50:00,4,20260727-T4-01,36.833575,10.104963,55.2,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 05:52,0
+2026-07-27 05:55:00,1,20260727-T1-02,36.866533,10.164761,0.0,245.0,inbound,terminal_wait,Ariana,Mnihla,2026-07-27 06:06,0.0
+2026-07-27 05:55:00,2,20260727-T2-02,36.88398,10.136033,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 06:07,0.0
+2026-07-27 05:55:00,3,20260727-T3-01,36.901156,10.06671,59.3,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 06:11,0.2
+2026-07-27 05:55:00,4,20260727-T4-01,36.847924,10.116016,10.1,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 06:01,0.7
+2026-07-27 06:00:00,1,20260727-T1-02,36.865798,10.162859,20.4,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 06:06,0.0
+2026-07-27 06:00:00,2,20260727-T2-02,36.883981,10.13605,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 06:07,0.0
+2026-07-27 06:00:00,3,20260727-T3-01,36.909854,10.031738,10.0,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 06:11,0.2
+2026-07-27 06:00:00,4,20260727-T4-01,36.863337,10.156322,47.9,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 06:01,0.7
+2026-07-27 06:05:00,1,20260727-T1-02,36.849919,10.121265,35.9,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 06:06,0.0
+2026-07-27 06:05:00,2,20260727-T2-02,36.861841,10.123581,57.4,204.0,inbound,moving,Borj Louzir,Mnihla,2026-07-27 06:07,0.0
+2026-07-27 06:05:00,3,20260727-T3-02,36.909979,10.031014,0.0,107.0,inbound,terminal_wait,Sidi Thabet,Borj Louzir,2026-07-27 06:26,0.0
+2026-07-27 06:05:00,4,20260727-T4-01,36.870927,10.166479,30.8,17.0,outbound,moving,Ariana,Raoued,2026-07-27 06:23,0.4
+2026-07-27 06:10:00,1,20260727-T1-02,36.838667,10.113807,52.1,189.0,inbound,moving,Mnihla,Denden,2026-07-27 06:13,0.1
+2026-07-27 06:10:00,2,20260727-T2-02,36.846885,10.115067,20.6,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 06:26,0.4
+2026-07-27 06:10:00,3,20260727-T3-02,36.910036,10.031014,0.0,107.0,inbound,terminal_wait,Sidi Thabet,Borj Louzir,2026-07-27 06:26,0.0
+2026-07-27 06:10:00,4,20260727-T4-01,36.907374,10.180619,53.2,17.0,outbound,moving,Ariana,Raoued,2026-07-27 06:23,0.4
+2026-07-27 06:15:00,1,20260727-T1-02,36.812794,10.108603,0.0,258.0,inbound,at_station,Denden,Manouba,2026-07-27 06:28,0.3
+2026-07-27 06:15:00,2,20260727-T2-02,36.813212,10.089522,41.6,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 06:26,0.4
+2026-07-27 06:15:00,3,20260727-T3-02,36.907174,10.042534,36.5,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 06:26,0.0
+2026-07-27 06:15:00,4,20260727-T4-02,36.923401,10.186889,0.0,197.0,inbound,terminal_wait,Raoued,Ariana,2026-07-27 06:33,0.0
+2026-07-27 06:20:00,1,20260727-T1-03,36.808892,10.086277,0.0,78.0,outbound,terminal_wait,Manouba,Denden,2026-07-27 06:31,0.0
+2026-07-27 06:20:00,2,20260727-T2-03,36.808908,10.086305,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 06:34,0.0
+2026-07-27 06:20:00,3,20260727-T3-02,36.896097,10.087055,57.1,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 06:26,0.0
+2026-07-27 06:20:00,4,20260727-T4-02,36.923395,10.186938,0.0,197.0,inbound,terminal_wait,Raoued,Ariana,2026-07-27 06:33,0.0
+2026-07-27 06:25:00,1,20260727-T1-03,36.808952,10.086286,0.0,78.0,outbound,terminal_wait,Manouba,Denden,2026-07-27 06:31,0.0
+2026-07-27 06:25:00,2,20260727-T2-03,36.808918,10.086339,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 06:34,0.0
+2026-07-27 06:25:00,3,20260727-T3-02,36.885813,10.128531,27.6,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 06:26,0.0
+2026-07-27 06:25:00,4,20260727-T4-02,36.919376,10.18534,28.2,197.0,inbound,moving,Raoued,Ariana,2026-07-27 06:33,0.0
+2026-07-27 06:30:00,1,20260727-T1-03,36.811699,10.102127,57.9,78.0,outbound,moving,Manouba,Denden,2026-07-27 06:31,0.0
+2026-07-27 06:30:00,2,20260727-T2-03,36.822874,10.0969,60.3,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 06:34,0.0
+2026-07-27 06:30:00,3,20260727-T3-02,36.880998,10.140947,49.3,127.0,inbound,moving,Borj Louzir,Ariana,2026-07-27 06:43,0.7
+2026-07-27 06:30:00,4,20260727-T4-02,36.884678,10.171736,50.9,197.0,inbound,moving,Raoued,Ariana,2026-07-27 06:33,0.0
+2026-07-27 06:35:00,1,20260727-T1-03,36.826936,10.111429,59.4,9.0,outbound,moving,Denden,Mnihla,2026-07-27 06:38,0.0
+2026-07-27 06:35:00,2,20260727-T2-03,36.847814,10.115704,0.0,24.0,outbound,at_station,Mnihla,Borj Louzir,2026-07-27 06:52,-0.4
+2026-07-27 06:35:00,3,20260727-T3-03,36.866493,10.164665,0.0,307.0,outbound,terminal_wait,Ariana,Borj Louzir,2026-07-27 06:48,0.0
+2026-07-27 06:35:00,4,20260727-T4-02,36.866526,10.164635,0.0,245.0,inbound,at_station,Ariana,Mnihla,2026-07-27 06:42,0.7
+2026-07-27 06:40:00,1,20260727-T1-03,36.847873,10.115989,10.5,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 06:57,0.1
+2026-07-27 06:40:00,2,20260727-T2-03,36.87068,10.128557,58.2,24.0,outbound,moving,Mnihla,Borj Louzir,2026-07-27 06:52,0.0
+2026-07-27 06:40:00,3,20260727-T3-03,36.866505,10.164704,0.0,307.0,outbound,terminal_wait,Ariana,Borj Louzir,2026-07-27 06:48,0.0
+2026-07-27 06:40:00,4,20260727-T4-02,36.853312,10.130269,56.6,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 06:42,0.7
+2026-07-27 06:45:00,1,20260727-T1-03,36.862459,10.154052,48.6,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 06:57,0.1
+2026-07-27 06:45:00,2,20260727-T2-04,36.883982,10.136049,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 06:59,0.0
+2026-07-27 06:45:00,3,20260727-T3-03,36.873074,10.153842,60.1,307.0,outbound,moving,Ariana,Borj Louzir,2026-07-27 06:48,0.0
+2026-07-27 06:45:00,4,20260727-T4-02,36.845675,10.114059,27.3,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 07:01,0.7
+2026-07-27 06:50:00,1,20260727-T1-04,36.866474,10.164734,0.0,245.0,inbound,terminal_wait,Ariana,Mnihla,2026-07-27 07:04,0.0
+2026-07-27 06:50:00,2,20260727-T2-04,36.883987,10.136006,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 06:59,0.0
+2026-07-27 06:50:00,3,20260727-T3-03,36.884234,10.135105,11.7,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 07:14,0.0
+2026-07-27 06:50:00,4,20260727-T4-02,36.81196,10.08862,34.2,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 07:01,0.7
+2026-07-27 06:55:00,1,20260727-T1-04,36.866496,10.164694,0.0,245.0,inbound,terminal_wait,Ariana,Mnihla,2026-07-27 07:04,0.0
+2026-07-27 06:55:00,2,20260727-T2-04,36.876478,10.131845,49.4,204.0,inbound,moving,Borj Louzir,Mnihla,2026-07-27 06:59,0.0
+2026-07-27 06:55:00,3,20260727-T3-03,36.892457,10.101856,57.6,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 07:14,0.0
+2026-07-27 06:55:00,4,20260727-T4-03,36.808897,10.0863,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 07:09,0.0
+2026-07-27 07:00:00,1,20260727-T1-04,36.860264,10.148413,58.8,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 07:04,0.0
+2026-07-27 07:00:00,2,20260727-T2-04,36.847828,10.115745,0.0,211.0,inbound,at_station,Mnihla,Manouba,2026-07-27 07:18,0.2
+2026-07-27 07:00:00,3,20260727-T3-03,36.905032,10.051114,46.6,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 07:14,0.0
+2026-07-27 07:00:00,4,20260727-T4-03,36.808915,10.086305,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 07:09,0.0
+2026-07-27 07:05:00,1,20260727-T1-04,36.847815,10.115681,0.0,189.0,inbound,at_station,Mnihla,Denden,2026-07-27 07:12,-0.4
+2026-07-27 07:05:00,2,20260727-T2-04,36.840316,10.110021,28.3,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 07:18,0.2
+2026-07-27 07:05:00,3,20260727-T3-04,36.910025,10.030928,0.0,107.0,inbound,terminal_wait,Sidi Thabet,Borj Louzir,2026-07-27 07:29,0.0
+2026-07-27 07:05:00,4,20260727-T4-03,36.824436,10.098101,50.5,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 07:09,0.0
+2026-07-27 07:10:00,1,20260727-T1-04,36.823311,10.110757,52.3,189.0,inbound,moving,Mnihla,Denden,2026-07-27 07:12,0.0
+2026-07-27 07:10:00,2,20260727-T2-04,36.819524,10.094326,30.8,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 07:18,0.2
+2026-07-27 07:10:00,3,20260727-T3-04,36.910026,10.031033,0.0,107.0,inbound,terminal_wait,Sidi Thabet,Borj Louzir,2026-07-27 07:29,0.0
+2026-07-27 07:10:00,4,20260727-T4-03,36.847854,10.11571,0.0,64.0,outbound,at_station,Mnihla,Ariana,2026-07-27 07:17,0.9
+2026-07-27 07:15:00,1,20260727-T1-04,36.811418,10.10085,52.1,258.0,inbound,moving,Denden,Manouba,2026-07-27 07:26,0.6
+2026-07-27 07:15:00,2,20260727-T2-05,36.808956,10.086264,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 07:26,0.1
+2026-07-27 07:15:00,3,20260727-T3-04,36.909949,10.031218,3.8,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 07:29,0.0
+2026-07-27 07:15:00,4,20260727-T4-03,36.860399,10.148684,57.1,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 07:17,0.5
+2026-07-27 07:20:00,1,20260727-T1-05,36.808872,10.086299,0.0,78.0,outbound,terminal_wait,Manouba,Denden,2026-07-27 07:29,0.0
+2026-07-27 07:20:00,2,20260727-T2-05,36.810538,10.087542,23.9,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 07:26,0.1
+2026-07-27 07:20:00,3,20260727-T3-04,36.904398,10.053611,40.5,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 07:29,0.0
+2026-07-27 07:20:00,4,20260727-T4-03,36.86822,10.165413,19.4,17.0,outbound,moving,Ariana,Raoued,2026-07-27 07:39,0.0
+2026-07-27 07:25:00,1,20260727-T1-05,36.808917,10.086324,0.0,78.0,outbound,terminal_wait,Manouba,Denden,2026-07-27 07:29,0.0
+2026-07-27 07:25:00,2,20260727-T2-05,36.84058,10.110276,41.3,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 07:26,0.1
+2026-07-27 07:25:00,3,20260727-T3-04,36.893502,10.097639,49.6,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 07:29,0.0
+2026-07-27 07:25:00,4,20260727-T4-03,36.900719,10.178035,57.8,17.0,outbound,moving,Ariana,Raoued,2026-07-27 07:39,0.0
+2026-07-27 07:30:00,1,20260727-T1-05,36.812552,10.107136,21.1,78.0,outbound,moving,Manouba,Denden,2026-07-27 07:29,0.0
+2026-07-27 07:30:00,2,20260727-T2-05,36.853091,10.118647,44.1,24.0,outbound,moving,Mnihla,Borj Louzir,2026-07-27 07:44,0.5
+2026-07-27 07:30:00,3,20260727-T3-04,36.885136,10.131422,21.2,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 07:29,0.0
+2026-07-27 07:30:00,4,20260727-T4-04,36.923396,10.186878,0.0,197.0,inbound,terminal_wait,Raoued,Ariana,2026-07-27 07:49,0.0
+2026-07-27 07:35:00,1,20260727-T1-05,36.833865,10.112945,57.6,9.0,outbound,moving,Denden,Mnihla,2026-07-27 07:36,1.1
+2026-07-27 07:35:00,2,20260727-T2-05,36.883921,10.135913,6.9,24.0,outbound,moving,Mnihla,Borj Louzir,2026-07-27 07:44,0.5
+2026-07-27 07:35:00,3,20260727-T3-04,36.879563,10.143222,55.9,127.0,inbound,moving,Borj Louzir,Ariana,2026-07-27 07:46,2.5
+2026-07-27 07:35:00,4,20260727-T4-04,36.923472,10.186892,0.0,197.0,inbound,terminal_wait,Raoued,Ariana,2026-07-27 07:49,0.0
+2026-07-27 07:40:00,1,20260727-T1-05,36.848715,10.11814,24.9,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 07:55,1.2
+2026-07-27 07:40:00,2,20260727-T2-06,36.884047,10.135991,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 07:51,0.0
+2026-07-27 07:40:00,3,20260727-T3-05,36.866518,10.164708,0.0,307.0,outbound,terminal_wait,Ariana,Borj Louzir,2026-07-27 07:51,0.0
+2026-07-27 07:40:00,4,20260727-T4-04,36.922737,10.186606,12.7,197.0,inbound,moving,Raoued,Ariana,2026-07-27 07:49,0.0
+2026-07-27 07:45:00,1,20260727-T1-05,36.864446,10.159217,36.5,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 07:55,1.2
+2026-07-27 07:45:00,2,20260727-T2-06,36.883926,10.135978,6.4,204.0,inbound,moving,Borj Louzir,Mnihla,2026-07-27 07:51,0.0
+2026-07-27 07:45:00,3,20260727-T3-05,36.866531,10.164668,0.0,307.0,outbound,terminal_wait,Ariana,Borj Louzir,2026-07-27 07:51,0.0
+2026-07-27 07:45:00,4,20260727-T4-04,36.89363,10.175257,54.9,197.0,inbound,moving,Raoued,Ariana,2026-07-27 07:49,0.0
+2026-07-27 07:50:00,1,20260727-T1-06,36.866542,10.164701,0.0,245.0,inbound,terminal_wait,Ariana,Mnihla,2026-07-27 08:02,0.0
+2026-07-27 07:50:00,2,20260727-T2-06,36.856973,10.120833,44.1,204.0,inbound,moving,Borj Louzir,Mnihla,2026-07-27 07:51,0.0
+2026-07-27 07:50:00,3,20260727-T3-05,36.878475,10.145058,43.4,307.0,outbound,moving,Ariana,Borj Louzir,2026-07-27 07:51,0.0
+2026-07-27 07:50:00,4,20260727-T4-04,36.866724,10.164815,7.9,197.0,inbound,moving,Raoued,Ariana,2026-07-27 07:49,0.0
+2026-07-27 07:55:00,1,20260727-T1-06,36.866474,10.164698,0.0,245.0,inbound,terminal_wait,Ariana,Mnihla,2026-07-27 08:02,0.0
+2026-07-27 07:55:00,2,20260727-T2-06,36.843825,10.112705,32.3,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 08:10,0.6
+2026-07-27 07:55:00,3,20260727-T3-05,36.88479,10.132922,21.1,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 08:17,1.1
+2026-07-27 07:55:00,4,20260727-T4-04,36.864923,10.160492,10.5,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 07:58,0.6
+2026-07-27 08:00:00,1,20260727-T1-06,36.856398,10.138274,50.6,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 08:02,0.0
+2026-07-27 08:00:00,2,20260727-T2-06,36.811959,10.088616,30.4,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 08:10,0.6
+2026-07-27 08:00:00,3,20260727-T3-05,36.893426,10.097868,52.5,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 08:17,1.1
+2026-07-27 08:00:00,4,20260727-T4-04,36.858787,10.144575,22.4,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 07:58,0.6
+2026-07-27 08:05:00,1,20260727-T1-06,36.847827,10.115688,4.3,189.0,inbound,moving,Mnihla,Denden,2026-07-27 08:10,1.0
+2026-07-27 08:05:00,2,20260727-T2-07,36.808867,10.086265,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 08:18,0.0
+2026-07-27 08:05:00,3,20260727-T3-05,36.905038,10.050859,44.7,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 08:17,1.1
+2026-07-27 08:05:00,4,20260727-T4-04,36.851706,10.125916,21.7,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 07:58,0.6
+2026-07-27 08:10:00,1,20260727-T1-06,36.817059,10.1095,36.3,189.0,inbound,moving,Mnihla,Denden,2026-07-27 08:10,1.0
+2026-07-27 08:10:00,2,20260727-T2-07,36.808872,10.08636,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 08:18,0.0
+2026-07-27 08:10:00,3,20260727-T3-06,36.909996,10.031019,0.0,107.0,inbound,terminal_wait,Sidi Thabet,Borj Louzir,2026-07-27 08:32,0.0
+2026-07-27 08:10:00,4,20260727-T4-04,36.847929,10.115951,2.6,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 07:58,0.6
+2026-07-27 08:15:00,1,20260727-T1-06,36.812536,10.106661,8.4,258.0,inbound,moving,Denden,Manouba,2026-07-27 08:24,1.3
+2026-07-27 08:15:00,2,20260727-T2-07,36.829313,10.101785,56.9,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 08:18,0.0
+2026-07-27 08:15:00,3,20260727-T3-06,36.910021,10.031017,0.0,107.0,inbound,terminal_wait,Sidi Thabet,Borj Louzir,2026-07-27 08:32,0.0
+2026-07-27 08:15:00,4,20260727-T4-04,36.838166,10.108392,46.9,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 08:17,12.9
+2026-07-27 08:20:00,1,20260727-T1-06,36.810485,10.095032,14.9,258.0,inbound,moving,Denden,Manouba,2026-07-27 08:24,1.3
+2026-07-27 08:20:00,2,20260727-T2-07,36.847804,10.115724,3.4,24.0,outbound,moving,Mnihla,Borj Louzir,2026-07-27 08:36,0.2
+2026-07-27 08:20:00,3,20260727-T3-06,36.908357,10.037762,29.5,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 08:32,0.0
+2026-07-27 08:20:00,4,20260727-T4-04,36.809402,10.086665,13.2,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 08:17,12.9
+2026-07-27 08:25:00,1,20260727-T1-06,36.808898,10.086479,1.0,258.0,inbound,moving,Denden,Manouba,2026-07-27 08:24,1.3
+2026-07-27 08:25:00,2,20260727-T2-07,36.879608,10.133505,42.6,24.0,outbound,moving,Mnihla,Borj Louzir,2026-07-27 08:36,0.2
+2026-07-27 08:25:00,3,20260727-T3-06,36.89736,10.082082,61.3,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 08:32,0.0
+2026-07-27 08:25:00,4,20260727-T4-05,36.809117,10.086487,8.4,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 08:25,7.3
+2026-07-27 08:30:00,1,20260727-T1-07,36.80894,10.086594,8.1,78.0,outbound,moving,Manouba,Denden,2026-07-27 08:27,5.3
+2026-07-27 08:30:00,2,20260727-T2-08,36.884014,10.135949,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 08:43,0.0
+2026-07-27 08:30:00,3,20260727-T3-06,36.886065,10.127729,33.3,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 08:32,0.0
+2026-07-27 08:30:00,4,20260727-T4-05,36.833581,10.104917,48.6,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 08:25,7.3
+2026-07-27 08:35:00,1,20260727-T1-07,36.812816,10.108639,0.0,9.0,outbound,at_station,Denden,Mnihla,2026-07-27 08:34,6.6
+2026-07-27 08:35:00,2,20260727-T2-08,36.884031,10.136002,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 08:43,0.0
+2026-07-27 08:35:00,3,20260727-T3-06,36.882362,10.138528,32.7,127.0,inbound,moving,Borj Louzir,Ariana,2026-07-27 08:49,0.0
+2026-07-27 08:35:00,4,20260727-T4-05,36.848046,10.116215,12.4,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 08:33,8.2
+2026-07-27 08:40:00,1,20260727-T1-07,36.844665,10.115109,36.6,9.0,outbound,moving,Denden,Mnihla,2026-07-27 08:34,6.4
+2026-07-27 08:40:00,2,20260727-T2-08,36.871265,10.128857,47.4,204.0,inbound,moving,Borj Louzir,Mnihla,2026-07-27 08:43,0.0
+2026-07-27 08:40:00,3,20260727-T3-07,36.866549,10.164704,0.0,307.0,outbound,terminal_wait,Ariana,Borj Louzir,2026-07-27 08:54,0.0
+2026-07-27 08:40:00,4,20260727-T4-05,36.863791,10.157427,43.0,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 08:33,8.2
+2026-07-27 08:45:00,1,20260727-T1-07,36.852652,10.128482,50.7,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 08:53,6.6
+2026-07-27 08:45:00,2,20260727-T2-08,36.847764,10.11569,0.0,211.0,inbound,at_station,Mnihla,Manouba,2026-07-27 09:02,1.4
+2026-07-27 08:45:00,3,20260727-T3-07,36.866519,10.164702,0.0,307.0,outbound,terminal_wait,Ariana,Borj Louzir,2026-07-27 08:54,0.0
+2026-07-27 08:45:00,4,20260727-T4-05,36.872192,10.166925,36.8,17.0,outbound,moving,Ariana,Raoued,2026-07-27 08:55,7.9
+2026-07-27 08:50:00,1,20260727-T1-07,36.866511,10.164656,1.8,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 08:53,6.6
+2026-07-27 08:50:00,2,20260727-T2-08,36.826386,10.099522,63.0,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 09:02,1.5
+2026-07-27 08:50:00,3,20260727-T3-07,36.867474,10.163028,20.8,307.0,outbound,moving,Ariana,Borj Louzir,2026-07-27 08:54,0.0
+2026-07-27 08:50:00,4,20260727-T4-05,36.910385,10.181844,51.1,17.0,outbound,moving,Ariana,Raoued,2026-07-27 08:55,7.9
+2026-07-27 08:55:00,1,20260727-T1-08,36.866097,10.163603,12.7,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 09:01,0.6
+2026-07-27 08:55:00,2,20260727-T2-09,36.80885,10.086344,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 09:10,0.0
+2026-07-27 08:55:00,3,20260727-T3-07,36.883733,10.136393,13.9,307.0,outbound,moving,Ariana,Borj Louzir,2026-07-27 08:54,0.0
+2026-07-27 08:55:00,4,20260727-T4-06,36.923457,10.186963,0.0,197.0,inbound,terminal_wait,Raoued,Ariana,2026-07-27 09:05,1.9
+2026-07-27 09:00:00,1,20260727-T1-08,36.854531,10.133246,44.1,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 09:01,0.6
+2026-07-27 09:00:00,2,20260727-T2-09,36.808922,10.086293,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 09:10,0.0
+2026-07-27 09:00:00,3,20260727-T3-07,36.887726,10.121039,43.7,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 09:20,1.2
+2026-07-27 09:00:00,4,20260727-T4-06,36.91704,10.184426,31.8,197.0,inbound,moving,Raoued,Ariana,2026-07-27 09:05,1.9
+2026-07-27 09:05:00,1,20260727-T1-08,36.847802,10.115723,0.0,189.0,inbound,at_station,Mnihla,Denden,2026-07-27 09:08,3.1
+2026-07-27 09:05:00,2,20260727-T2-09,36.816469,10.092028,45.5,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 09:10,0.0
+2026-07-27 09:05:00,3,20260727-T3-07,36.900003,10.07131,59.3,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 09:20,1.2
+2026-07-27 09:05:00,4,20260727-T4-06,36.884423,10.171653,49.2,197.0,inbound,moving,Raoued,Ariana,2026-07-27 09:05,1.9
+2026-07-27 09:10:00,1,20260727-T1-08,36.818944,10.109786,42.1,189.0,inbound,moving,Mnihla,Denden,2026-07-27 09:08,3.2
+2026-07-27 09:10:00,2,20260727-T2-09,36.84672,10.114836,20.7,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 09:10,0.0
+2026-07-27 09:10:00,3,20260727-T3-07,36.909424,10.033467,19.3,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 09:20,1.2
+2026-07-27 09:10:00,4,20260727-T4-06,36.866472,10.164685,0.0,245.0,inbound,at_station,Ariana,Mnihla,2026-07-27 09:14,3.9
+2026-07-27 09:15:00,1,20260727-T1-08,36.810168,10.093924,55.1,258.0,inbound,moving,Denden,Manouba,2026-07-27 09:22,3.8
+2026-07-27 09:15:00,2,20260727-T2-09,36.861795,10.123539,58.3,24.0,outbound,moving,Mnihla,Borj Louzir,2026-07-27 09:28,0.5
+2026-07-27 09:15:00,3,20260727-T3-08,36.909983,10.031035,0.0,107.0,inbound,terminal_wait,Sidi Thabet,Borj Louzir,2026-07-27 09:35,0.0
+2026-07-27 09:15:00,4,20260727-T4-06,36.85274,10.128599,58.1,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 09:14,3.6
+2026-07-27 09:20:00,1,20260727-T1-09,36.808896,10.08632,0.0,78.0,outbound,terminal_wait,Manouba,Denden,2026-07-27 09:25,0.0
+2026-07-27 09:20:00,2,20260727-T2-10,36.883967,10.135993,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 09:35,0.0
+2026-07-27 09:20:00,3,20260727-T3-08,36.910005,10.031013,0.0,107.0,inbound,terminal_wait,Sidi Thabet,Borj Louzir,2026-07-27 09:35,0.0
+2026-07-27 09:20:00,4,20260727-T4-06,36.843997,10.112767,38.7,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 09:33,3.0
+2026-07-27 09:25:00,1,20260727-T1-09,36.812467,10.106567,36.5,78.0,outbound,moving,Manouba,Denden,2026-07-27 09:25,0.0
+2026-07-27 09:25:00,2,20260727-T2-10,36.883993,10.136043,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 09:35,0.0
+2026-07-27 09:25:00,3,20260727-T3-08,36.905412,10.04948,42.5,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 09:35,0.0
+2026-07-27 09:25:00,4,20260727-T4-06,36.810396,10.087475,23.1,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 09:33,3.0
+2026-07-27 09:30:00,1,20260727-T1-09,36.830383,10.112189,57.9,9.0,outbound,moving,Denden,Mnihla,2026-07-27 09:32,0.0
+2026-07-27 09:30:00,2,20260727-T2-10,36.879901,10.133683,41.5,204.0,inbound,moving,Borj Louzir,Mnihla,2026-07-27 09:35,0.0
+2026-07-27 09:30:00,3,20260727-T3-08,36.89368,10.097035,52.9,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 09:35,0.0
+2026-07-27 09:30:00,4,20260727-T4-07,36.808869,10.086248,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 09:41,0.0
+2026-07-27 09:35:00,1,20260727-T1-09,36.848061,10.116362,14.2,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 09:51,0.6
+2026-07-27 09:35:00,2,20260727-T2-10,36.847899,10.115754,7.2,204.0,inbound,moving,Borj Louzir,Mnihla,2026-07-27 09:35,0.0
+2026-07-27 09:35:00,3,20260727-T3-08,36.884786,10.132886,21.5,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 09:35,0.0
+2026-07-27 09:35:00,4,20260727-T4-07,36.812512,10.089034,35.7,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 09:41,0.0
+2026-07-27 09:40:00,1,20260727-T1-09,36.864438,10.159358,38.5,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 09:51,0.6
+2026-07-27 09:40:00,2,20260727-T2-10,36.829695,10.102131,63.3,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 09:54,0.0
+2026-07-27 09:40:00,3,20260727-T3-08,36.874015,10.152403,63.7,127.0,inbound,moving,Borj Louzir,Ariana,2026-07-27 09:52,0.5
+2026-07-27 09:40:00,4,20260727-T4-07,36.844893,10.113523,32.2,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 09:41,0.0
+2026-07-27 09:45:00,1,20260727-T1-10,36.866563,10.164719,0.0,245.0,inbound,terminal_wait,Ariana,Mnihla,2026-07-27 09:59,0.0
+2026-07-27 09:45:00,2,20260727-T2-11,36.808931,10.086307,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 10:02,0.0
+2026-07-27 09:45:00,3,20260727-T3-09,36.866523,10.164692,0.0,307.0,outbound,terminal_wait,Ariana,Borj Louzir,2026-07-27 09:57,0.0
+2026-07-27 09:45:00,4,20260727-T4-07,36.851918,10.126538,51.1,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 09:50,0.2
+2026-07-27 09:50:00,1,20260727-T1-10,36.866546,10.164741,0.0,245.0,inbound,terminal_wait,Ariana,Mnihla,2026-07-27 09:59,0.0
+2026-07-27 09:50:00,2,20260727-T2-11,36.808925,10.086258,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 10:02,0.0
+2026-07-27 09:50:00,3,20260727-T3-09,36.866564,10.164713,0.0,307.0,outbound,terminal_wait,Ariana,Borj Louzir,2026-07-27 09:57,0.0
+2026-07-27 09:50:00,4,20260727-T4-07,36.866473,10.16467,2.5,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 09:50,0.2
+2026-07-27 09:55:00,1,20260727-T1-10,36.858887,10.144713,57.2,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 09:59,0.0
+2026-07-27 09:55:00,2,20260727-T2-11,36.809285,10.08653,10.5,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 10:02,0.0
+2026-07-27 09:55:00,3,20260727-T3-09,36.879151,10.143922,58.0,307.0,outbound,moving,Ariana,Borj Louzir,2026-07-27 09:57,0.0
+2026-07-27 09:55:00,4,20260727-T4-07,36.885047,10.171937,57.6,17.0,outbound,moving,Ariana,Raoued,2026-07-27 10:11,0.0
+2026-07-27 10:00:00,1,20260727-T1-10,36.847825,10.11564,0.0,189.0,inbound,at_station,Mnihla,Denden,2026-07-27 10:06,0.2
+2026-07-27 10:00:00,2,20260727-T2-11,36.838476,10.108618,47.8,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 10:02,0.0
+2026-07-27 10:00:00,3,20260727-T3-09,36.88488,10.132367,18.2,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 10:23,0.0
+2026-07-27 10:00:00,4,20260727-T4-07,36.921341,10.18609,21.4,17.0,outbound,moving,Ariana,Raoued,2026-07-27 10:11,0.0
+2026-07-27 10:05:00,1,20260727-T1-10,36.822564,10.110547,50.3,189.0,inbound,moving,Mnihla,Denden,2026-07-27 10:06,0.5
+2026-07-27 10:05:00,2,20260727-T2-11,36.848641,10.116179,9.1,24.0,outbound,moving,Mnihla,Borj Louzir,2026-07-27 10:20,0.2
+2026-07-27 10:05:00,3,20260727-T3-09,36.894173,10.095092,55.5,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 10:23,0.0
+2026-07-27 10:05:00,4,20260727-T4-08,36.923364,10.186948,0.0,197.0,inbound,terminal_wait,Raoued,Ariana,2026-07-27 10:21,0.0
+2026-07-27 10:10:00,1,20260727-T1-10,36.810293,10.094099,59.9,258.0,inbound,moving,Denden,Manouba,2026-07-27 10:20,0.7
+2026-07-27 10:10:00,2,20260727-T2-11,36.864437,10.125051,30.6,24.0,outbound,moving,Mnihla,Borj Louzir,2026-07-27 10:20,0.2
+2026-07-27 10:10:00,3,20260727-T3-09,36.905853,10.047674,40.9,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 10:23,0.0
+2026-07-27 10:10:00,4,20260727-T4-08,36.923394,10.186925,0.0,197.0,inbound,terminal_wait,Raoued,Ariana,2026-07-27 10:21,0.0
+2026-07-27 10:15:00,1,20260727-T1-11,36.808932,10.086354,0.0,78.0,outbound,terminal_wait,Manouba,Denden,2026-07-27 10:23,0.0
+2026-07-27 10:15:00,2,20260727-T2-11,36.882003,10.134871,17.0,24.0,outbound,moving,Mnihla,Borj Louzir,2026-07-27 10:20,0.2
+2026-07-27 10:15:00,3,20260727-T3-10,36.910014,10.030997,0.0,107.0,inbound,terminal_wait,Sidi Thabet,Borj Louzir,2026-07-27 10:38,0.0
+2026-07-27 10:15:00,4,20260727-T4-08,36.908897,10.181234,54.0,197.0,inbound,moving,Raoued,Ariana,2026-07-27 10:21,0.0
+2026-07-27 10:20:00,1,20260727-T1-11,36.808838,10.086294,0.0,78.0,outbound,terminal_wait,Manouba,Denden,2026-07-27 10:23,0.0
+2026-07-27 10:20:00,2,20260727-T2-12,36.884033,10.135971,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 10:27,0.6
+2026-07-27 10:20:00,3,20260727-T3-10,36.910004,10.03099,0.0,107.0,inbound,terminal_wait,Sidi Thabet,Borj Louzir,2026-07-27 10:38,0.0
+2026-07-27 10:20:00,4,20260727-T4-08,36.870925,10.166428,33.6,197.0,inbound,moving,Raoued,Ariana,2026-07-27 10:21,0.0
+2026-07-27 10:25:00,1,20260727-T1-11,36.812803,10.108599,0.5,9.0,outbound,moving,Denden,Mnihla,2026-07-27 10:31,0.1
+2026-07-27 10:25:00,2,20260727-T2-12,36.85873,10.121808,59.4,204.0,inbound,moving,Borj Louzir,Mnihla,2026-07-27 10:27,0.6
+2026-07-27 10:25:00,3,20260727-T3-10,36.909449,10.033218,16.7,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 10:38,0.0
+2026-07-27 10:25:00,4,20260727-T4-08,36.863792,10.15764,44.0,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 10:30,0.2
+2026-07-27 10:30:00,1,20260727-T1-11,36.843653,10.114858,37.7,9.0,outbound,moving,Denden,Mnihla,2026-07-27 10:31,0.1
+2026-07-27 10:30:00,2,20260727-T2-12,36.84351,10.112419,42.1,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 10:46,0.0
+2026-07-27 10:30:00,3,20260727-T3-10,36.900742,10.068518,54.8,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 10:38,0.0
+2026-07-27 10:30:00,4,20260727-T4-08,36.848113,10.116478,14.9,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 10:30,0.2
+2026-07-27 10:35:00,1,20260727-T1-11,36.85349,10.130631,60.1,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 10:49,0.3
+2026-07-27 10:35:00,2,20260727-T2-12,36.809682,10.086912,21.3,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 10:46,0.0
+2026-07-27 10:35:00,3,20260727-T3-10,36.88865,10.117313,45.7,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 10:38,0.0
+2026-07-27 10:35:00,4,20260727-T4-08,36.830093,10.102308,66.6,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 10:49,0.0
+2026-07-27 10:40:00,1,20260727-T1-12,36.866497,10.164734,0.0,245.0,inbound,terminal_wait,Ariana,Mnihla,2026-07-27 10:57,0.0
+2026-07-27 10:40:00,2,20260727-T2-13,36.808859,10.08631,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 10:54,0.0
+2026-07-27 10:40:00,3,20260727-T3-10,36.883977,10.136025,0.0,127.0,inbound,at_station,Borj Louzir,Ariana,2026-07-27 10:55,0.5
+2026-07-27 10:40:00,4,20260727-T4-09,36.808955,10.086273,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 10:57,0.0
+2026-07-27 10:45:00,1,20260727-T1-12,36.866466,10.164669,0.0,245.0,inbound,terminal_wait,Ariana,Mnihla,2026-07-27 10:57,0.0
+2026-07-27 10:45:00,2,20260727-T2-13,36.808905,10.086317,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 10:54,0.0
+2026-07-27 10:45:00,3,20260727-T3-10,36.867708,10.162671,29.3,127.0,inbound,moving,Borj Louzir,Ariana,2026-07-27 10:55,0.7
+2026-07-27 10:45:00,4,20260727-T4-09,36.808884,10.0863,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 10:57,0.0
+2026-07-27 10:50:00,1,20260727-T1-12,36.866424,10.164411,8.7,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 10:57,0.0
+2026-07-27 10:50:00,2,20260727-T2-13,36.824046,10.097717,55.6,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 10:54,0.0
+2026-07-27 10:50:00,3,20260727-T3-11,36.866505,10.164697,0.0,307.0,outbound,terminal_wait,Ariana,Borj Louzir,2026-07-27 11:00,0.0
+2026-07-27 10:50:00,4,20260727-T4-09,36.809146,10.086535,10.4,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 10:57,0.0
+2026-07-27 10:55:00,1,20260727-T1-12,36.850454,10.122611,42.6,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 10:57,0.0
+2026-07-27 10:55:00,2,20260727-T2-13,36.847787,10.115679,0.0,24.0,outbound,at_station,Mnihla,Borj Louzir,2026-07-27 11:12,0.5
+2026-07-27 10:55:00,3,20260727-T3-11,36.866536,10.164715,0.0,307.0,outbound,terminal_wait,Ariana,Borj Louzir,2026-07-27 11:00,0.0
+2026-07-27 10:55:00,4,20260727-T4-09,36.837845,10.108106,50.6,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 10:57,0.0
+2026-07-27 11:00:00,1,20260727-T1-12,36.842436,10.1146,38.9,189.0,inbound,moving,Mnihla,Denden,2026-07-27 11:04,0.0
+2026-07-27 11:00:00,2,20260727-T2-13,36.869212,10.127755,57.8,24.0,outbound,moving,Mnihla,Borj Louzir,2026-07-27 11:12,0.7
+2026-07-27 11:00:00,3,20260727-T3-11,36.884055,10.135986,0.0,287.0,outbound,at_station,Borj Louzir,Sidi Thabet,2026-07-27 11:26,-0.4
+2026-07-27 11:00:00,4,20260727-T4-09,36.849586,10.120421,39.0,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 11:06,0.0
+2026-07-27 11:05:00,1,20260727-T1-12,36.812789,10.108594,0.0,258.0,inbound,at_station,Denden,Manouba,2026-07-27 11:18,0.5
+2026-07-27 11:05:00,2,20260727-T2-14,36.884039,10.136002,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 11:19,0.0
+2026-07-27 11:05:00,3,20260727-T3-11,36.888469,10.117813,49.4,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 11:26,0.0
+2026-07-27 11:05:00,4,20260727-T4-09,36.866119,10.163702,17.6,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 11:06,0.0
+2026-07-27 11:10:00,1,20260727-T1-13,36.808902,10.086287,0.0,78.0,outbound,terminal_wait,Manouba,Denden,2026-07-27 11:21,0.0
+2026-07-27 11:10:00,2,20260727-T2-14,36.884032,10.136021,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 11:19,0.0
+2026-07-27 11:10:00,3,20260727-T3-11,36.90181,10.064047,59.8,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 11:26,0.0
+2026-07-27 11:10:00,4,20260727-T4-09,36.875593,10.168239,43.9,17.0,outbound,moving,Ariana,Raoued,2026-07-27 11:27,0.0
+2026-07-27 11:15:00,1,20260727-T1-13,36.808874,10.086301,0.0,78.0,outbound,terminal_wait,Manouba,Denden,2026-07-27 11:21,0.0
+2026-07-27 11:15:00,2,20260727-T2-14,36.870869,10.128654,61.1,204.0,inbound,moving,Borj Louzir,Mnihla,2026-07-27 11:19,0.0
+2026-07-27 11:15:00,3,20260727-T3-11,36.909918,10.031275,6.2,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 11:26,0.0
+2026-07-27 11:15:00,4,20260727-T4-09,36.913689,10.183097,46.0,17.0,outbound,moving,Ariana,Raoued,2026-07-27 11:27,0.0
+2026-07-27 11:20:00,1,20260727-T1-13,36.810178,10.093582,54.0,78.0,outbound,moving,Manouba,Denden,2026-07-27 11:21,0.0
+2026-07-27 11:20:00,2,20260727-T2-14,36.847836,10.115705,0.0,211.0,inbound,at_station,Mnihla,Manouba,2026-07-27 11:38,-0.5
+2026-07-27 11:20:00,3,20260727-T3-12,36.909977,10.030989,0.0,107.0,inbound,terminal_wait,Sidi Thabet,Borj Louzir,2026-07-27 11:41,0.0
+2026-07-27 11:20:00,4,20260727-T4-10,36.923413,10.186886,0.0,197.0,inbound,terminal_wait,Raoued,Ariana,2026-07-27 11:38,0.0
+2026-07-27 11:25:00,1,20260727-T1-13,36.820905,10.110206,50.7,9.0,outbound,moving,Denden,Mnihla,2026-07-27 11:29,0.0
+2026-07-27 11:25:00,2,20260727-T2-14,36.819299,10.094173,60.1,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 11:38,0.0
+2026-07-27 11:25:00,3,20260727-T3-12,36.909988,10.03104,0.0,107.0,inbound,terminal_wait,Sidi Thabet,Borj Louzir,2026-07-27 11:41,0.0
+2026-07-27 11:25:00,4,20260727-T4-10,36.923353,10.186935,0.0,197.0,inbound,terminal_wait,Raoued,Ariana,2026-07-27 11:38,0.0
+2026-07-27 11:30:00,1,20260727-T1-13,36.84779,10.115642,0.0,64.0,outbound,at_station,Mnihla,Ariana,2026-07-27 11:47,0.2
+2026-07-27 11:30:00,2,20260727-T2-15,36.808914,10.086241,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 11:46,0.0
+2026-07-27 11:30:00,3,20260727-T3-12,36.906511,10.045145,44.5,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 11:41,0.0
+2026-07-27 11:30:00,4,20260727-T4-10,36.917587,10.184629,34.0,197.0,inbound,moving,Raoued,Ariana,2026-07-27 11:38,0.0
+2026-07-27 11:35:00,1,20260727-T1-13,36.860671,10.149476,56.8,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 11:47,0.2
+2026-07-27 11:35:00,2,20260727-T2-15,36.808909,10.086317,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 11:46,0.0
+2026-07-27 11:35:00,3,20260727-T3-12,36.893638,10.097014,59.4,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 11:41,0.0
+2026-07-27 11:35:00,4,20260727-T4-10,36.881976,10.170699,48.0,197.0,inbound,moving,Raoued,Ariana,2026-07-27 11:38,0.0
+2026-07-27 11:40:00,1,20260727-T1-14,36.86648,10.16469,0.0,245.0,inbound,terminal_wait,Ariana,Mnihla,2026-07-27 11:55,0.0
+2026-07-27 11:40:00,2,20260727-T2-15,36.80947,10.086746,5.1,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 11:46,0.0
+2026-07-27 11:40:00,3,20260727-T3-12,36.884304,10.134681,13.6,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 11:41,0.0
+2026-07-27 11:40:00,4,20260727-T4-10,36.866476,10.164721,0.0,245.0,inbound,at_station,Ariana,Mnihla,2026-07-27 11:46,0.8
+2026-07-27 11:45:00,1,20260727-T1-14,36.866474,10.164707,0.0,245.0,inbound,terminal_wait,Ariana,Mnihla,2026-07-27 11:55,0.0
+2026-07-27 11:45:00,2,20260727-T2-15,36.817026,10.092396,17.9,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 11:46,0.0
+2026-07-27 11:45:00,3,20260727-T3-12,36.877535,10.146537,59.9,127.0,inbound,moving,Borj Louzir,Ariana,2026-07-27 11:58,0.0
+2026-07-27 11:45:00,4,20260727-T4-10,36.852201,10.12723,54.1,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 11:46,1.1
+2026-07-27 11:50:00,1,20260727-T1-14,36.862496,10.154297,50.2,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 11:55,0.0
+2026-07-27 11:50:00,2,20260727-T2-15,36.829909,10.102194,22.9,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 11:46,0.0
+2026-07-27 11:50:00,3,20260727-T3-13,36.866456,10.164691,0.0,307.0,outbound,terminal_wait,Ariana,Borj Louzir,2026-07-27 12:03,0.0
+2026-07-27 11:50:00,4,20260727-T4-10,36.842544,10.111662,37.1,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 12:05,0.2
+2026-07-27 11:55:00,1,20260727-T1-14,36.84783,10.115746,0.9,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 11:55,0.0
+2026-07-27 11:55:00,2,20260727-T2-15,36.842092,10.111436,18.0,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 11:46,0.0
+2026-07-27 11:55:00,3,20260727-T3-13,36.86654,10.1647,0.0,307.0,outbound,terminal_wait,Ariana,Borj Louzir,2026-07-27 12:03,0.0
+2026-07-27 11:55:00,4,20260727-T4-10,36.811896,10.08858,31.9,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 12:05,0.2
+2026-07-27 12:00:00,1,20260727-T1-14,36.827495,10.111577,58.6,189.0,inbound,moving,Mnihla,Denden,2026-07-27 12:02,0.0
+2026-07-27 12:00:00,2,20260727-T2-15,36.847748,10.115597,3.2,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 11:46,0.0
+2026-07-27 12:00:00,3,20260727-T3-13,36.871793,10.156033,52.7,307.0,outbound,moving,Ariana,Borj Louzir,2026-07-27 12:03,0.0
+2026-07-27 12:00:00,4,20260727-T4-11,36.808964,10.086344,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 12:13,0.0
+2026-07-27 12:05:00,1,20260727-T1-14,36.811689,10.102438,51.4,258.0,inbound,moving,Denden,Manouba,2026-07-27 12:16,0.2
+2026-07-27 12:05:00,2,20260727-T2-15,36.867614,10.126817,59.6,24.0,outbound,moving,Mnihla,Borj Louzir,2026-07-27 12:04,14.1
+2026-07-27 12:05:00,3,20260727-T3-13,36.884061,10.135679,4.8,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 12:29,0.3
+2026-07-27 12:05:00,4,20260727-T4-11,36.808906,10.086303,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 12:13,0.0
+2026-07-27 12:10:00,1,20260727-T1-15,36.808906,10.086285,0.0,78.0,outbound,terminal_wait,Manouba,Denden,2026-07-27 12:20,0.0
+2026-07-27 12:10:00,2,20260727-T2-16,36.883993,10.136042,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 12:11,8.0
+2026-07-27 12:10:00,3,20260727-T3-13,36.890597,10.109437,48.6,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 12:29,0.3
+2026-07-27 12:10:00,4,20260727-T4-11,36.829371,10.101754,58.4,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 12:13,0.0
+2026-07-27 12:15:00,1,20260727-T1-15,36.808884,10.086338,0.0,78.0,outbound,terminal_wait,Manouba,Denden,2026-07-27 12:20,0.0
+2026-07-27 12:15:00,2,20260727-T2-16,36.871396,10.128923,57.3,204.0,inbound,moving,Borj Louzir,Mnihla,2026-07-27 12:11,8.0
+2026-07-27 12:15:00,3,20260727-T3-13,36.902429,10.061701,49.1,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 12:29,0.3
+2026-07-27 12:15:00,4,20260727-T4-11,36.847888,10.115778,1.8,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 12:22,0.1
+2026-07-27 12:20:00,1,20260727-T1-15,36.812736,10.108288,14.2,78.0,outbound,moving,Manouba,Denden,2026-07-27 12:20,0.0
+2026-07-27 12:20:00,2,20260727-T2-16,36.84783,10.11572,0.0,211.0,inbound,at_station,Mnihla,Manouba,2026-07-27 12:30,7.9
+2026-07-27 12:20:00,3,20260727-T3-13,36.909812,10.032039,11.9,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 12:29,0.3
+2026-07-27 12:20:00,4,20260727-T4-11,36.860898,10.149966,51.5,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 12:22,0.1
+2026-07-27 12:25:00,1,20260727-T1-15,36.838167,10.11376,56.4,9.0,outbound,moving,Denden,Mnihla,2026-07-27 12:27,0.0
+2026-07-27 12:25:00,2,20260727-T2-16,36.819169,10.09414,57.9,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 12:30,8.0
+2026-07-27 12:25:00,3,20260727-T3-14,36.909995,10.031048,0.0,107.0,inbound,terminal_wait,Sidi Thabet,Borj Louzir,2026-07-27 12:44,0.0
+2026-07-27 12:25:00,4,20260727-T4-11,36.868621,10.165502,24.7,17.0,outbound,moving,Ariana,Raoued,2026-07-27 12:43,0.4
+2026-07-27 12:30:00,1,20260727-T1-15,36.849786,10.120876,33.4,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 12:45,0.0
+2026-07-27 12:30:00,2,20260727-T2-17,36.808898,10.086345,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 12:38,1.4
+2026-07-27 12:30:00,3,20260727-T3-14,36.910013,10.031109,3.9,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 12:44,0.0
+2026-07-27 12:30:00,4,20260727-T4-11,36.905055,10.179717,55.7,17.0,outbound,moving,Ariana,Raoued,2026-07-27 12:43,0.4
+2026-07-27 12:35:00,1,20260727-T1-15,36.86508,10.160995,31.2,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 12:45,0.0
+2026-07-27 12:35:00,2,20260727-T2-17,36.82553,10.098909,61.7,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 12:38,1.4
+2026-07-27 12:35:00,3,20260727-T3-14,36.90672,10.044229,24.6,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 12:44,0.0
+2026-07-27 12:35:00,4,20260727-T4-12,36.923411,10.186885,0.0,197.0,inbound,terminal_wait,Raoued,Ariana,2026-07-27 12:54,0.0
+2026-07-27 12:40:00,1,20260727-T1-16,36.866468,10.164743,0.0,245.0,inbound,terminal_wait,Ariana,Mnihla,2026-07-27 12:53,0.0
+2026-07-27 12:40:00,2,20260727-T2-17,36.847816,10.115762,0.0,24.0,outbound,at_station,Mnihla,Borj Louzir,2026-07-27 12:56,1.0
+2026-07-27 12:40:00,3,20260727-T3-14,36.899334,10.07396,36.2,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 12:44,0.0
+2026-07-27 12:40:00,4,20260727-T4-12,36.923414,10.186951,0.0,197.0,inbound,terminal_wait,Raoued,Ariana,2026-07-27 12:54,0.0
+2026-07-27 12:45:00,1,20260727-T1-16,36.866487,10.16468,0.0,245.0,inbound,terminal_wait,Ariana,Mnihla,2026-07-27 12:53,0.0
+2026-07-27 12:45:00,2,20260727-T2-17,36.878738,10.133073,44.6,24.0,outbound,moving,Mnihla,Borj Louzir,2026-07-27 12:56,0.9
+2026-07-27 12:45:00,3,20260727-T3-14,36.891022,10.107745,35.3,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 12:44,0.0
+2026-07-27 12:45:00,4,20260727-T4-12,36.921677,10.186273,18.3,197.0,inbound,moving,Raoued,Ariana,2026-07-27 12:54,0.0
+2026-07-27 12:50:00,1,20260727-T1-16,36.855526,10.135944,61.7,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 12:53,0.0
+2026-07-27 12:50:00,2,20260727-T2-18,36.884001,10.135987,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 13:03,0.0
+2026-07-27 12:50:00,3,20260727-T3-14,36.885151,10.131241,16.2,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 12:44,0.0
+2026-07-27 12:50:00,4,20260727-T4-12,36.888274,10.173175,55.4,197.0,inbound,moving,Raoued,Ariana,2026-07-27 12:54,0.0
+2026-07-27 12:55:00,1,20260727-T1-16,36.847406,10.115589,14.1,189.0,inbound,moving,Mnihla,Denden,2026-07-27 13:00,0.0
+2026-07-27 12:55:00,2,20260727-T2-18,36.884006,10.136019,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 13:03,0.0
+2026-07-27 12:55:00,3,20260727-T3-14,36.882415,10.1385,37.2,127.0,inbound,moving,Borj Louzir,Ariana,2026-07-27 13:01,8.2
+2026-07-27 12:55:00,4,20260727-T4-12,36.866462,10.164738,0.0,245.0,inbound,at_station,Ariana,Mnihla,2026-07-27 13:02,0.3
+2026-07-27 13:00:00,1,20260727-T1-16,36.815153,10.109076,29.4,189.0,inbound,moving,Mnihla,Denden,2026-07-27 13:00,0.0
+2026-07-27 13:00:00,2,20260727-T2-18,36.860253,10.122685,61.1,204.0,inbound,moving,Borj Louzir,Mnihla,2026-07-27 13:03,0.0
+2026-07-27 13:00:00,3,20260727-T3-15,36.866494,10.164678,0.0,307.0,outbound,terminal_wait,Ariana,Borj Louzir,2026-07-27 13:06,1.7
+2026-07-27 13:00:00,4,20260727-T4-12,36.85454,10.133318,56.5,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 13:02,0.3
+2026-07-27 13:05:00,1,20260727-T1-16,36.808919,10.086492,11.2,258.0,inbound,moving,Denden,Manouba,2026-07-27 13:14,0.0
+2026-07-27 13:05:00,2,20260727-T2-18,36.846275,10.11455,25.3,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 13:22,0.0
+2026-07-27 13:05:00,3,20260727-T3-15,36.874912,10.15085,64.7,307.0,outbound,moving,Ariana,Borj Louzir,2026-07-27 13:06,1.7
+2026-07-27 13:05:00,4,20260727-T4-12,36.846241,10.114595,24.4,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 13:21,0.0
+2026-07-27 13:10:00,1,20260727-T1-17,36.808866,10.086321,0.0,78.0,outbound,terminal_wait,Manouba,Denden,2026-07-27 13:18,0.0
+2026-07-27 13:10:00,2,20260727-T2-18,36.811811,10.088528,34.1,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 13:22,0.0
+2026-07-27 13:10:00,3,20260727-T3-15,36.884983,10.132147,25.1,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 13:32,1.2
+2026-07-27 13:10:00,4,20260727-T4-12,36.815515,10.091313,39.8,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 13:21,0.0
+2026-07-27 13:15:00,1,20260727-T1-17,36.808884,10.086327,2.2,78.0,outbound,moving,Manouba,Denden,2026-07-27 13:18,0.0
+2026-07-27 13:15:00,2,20260727-T2-19,36.808914,10.086299,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 13:30,0.0
+2026-07-27 13:15:00,3,20260727-T3-15,36.89583,10.088189,63.0,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 13:32,1.2
+2026-07-27 13:15:00,4,20260727-T4-13,36.808833,10.086271,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 13:29,0.0
+2026-07-27 13:20:00,1,20260727-T1-17,36.813743,10.108823,18.7,9.0,outbound,moving,Denden,Mnihla,2026-07-27 13:25,0.2
+2026-07-27 13:20:00,2,20260727-T2-19,36.808879,10.086272,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 13:30,0.0
+2026-07-27 13:20:00,3,20260727-T3-15,36.907952,10.039116,34.2,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 13:32,1.2
+2026-07-27 13:20:00,4,20260727-T4-13,36.808987,10.086316,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 13:29,0.0
+2026-07-27 13:25:00,1,20260727-T1-17,36.846914,10.115527,19.9,9.0,outbound,moving,Denden,Mnihla,2026-07-27 13:25,0.2
+2026-07-27 13:25:00,2,20260727-T2-19,36.819552,10.09431,47.9,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 13:30,0.0
+2026-07-27 13:25:00,3,20260727-T3-16,36.909993,10.031019,0.0,107.0,inbound,terminal_wait,Sidi Thabet,Borj Louzir,2026-07-27 13:47,0.0
+2026-07-27 13:25:00,4,20260727-T4-13,36.820765,10.095286,51.5,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 13:29,0.0
+2026-07-27 13:30:00,1,20260727-T1-17,36.857498,10.141171,66.3,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 13:44,0.0
+2026-07-27 13:30:00,2,20260727-T2-19,36.847496,10.115496,8.7,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 13:30,0.0
+2026-07-27 13:30:00,3,20260727-T3-16,36.910037,10.031019,0.0,107.0,inbound,terminal_wait,Sidi Thabet,Borj Louzir,2026-07-27 13:47,0.0
+2026-07-27 13:30:00,4,20260727-T4-13,36.847685,10.115644,7.5,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 13:29,0.0
+2026-07-27 13:35:00,1,20260727-T1-18,36.866522,10.164696,0.0,245.0,inbound,terminal_wait,Ariana,Mnihla,2026-07-27 13:51,0.0
+2026-07-27 13:35:00,2,20260727-T2-19,36.870003,10.128137,64.8,24.0,outbound,moving,Mnihla,Borj Louzir,2026-07-27 13:48,0.3
+2026-07-27 13:35:00,3,20260727-T3-16,36.908328,10.037948,30.8,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 13:47,0.0
+2026-07-27 13:35:00,4,20260727-T4-13,36.856479,10.138275,57.0,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 13:38,0.4
+2026-07-27 13:40:00,1,20260727-T1-18,36.866499,10.164722,0.0,245.0,inbound,terminal_wait,Ariana,Mnihla,2026-07-27 13:51,0.0
+2026-07-27 13:40:00,2,20260727-T2-20,36.883999,10.136043,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 13:54,0.0
+2026-07-27 13:40:00,3,20260727-T3-16,36.896951,10.083721,63.1,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 13:47,0.0
+2026-07-27 13:40:00,4,20260727-T4-13,36.866542,10.164668,0.0,17.0,outbound,at_station,Ariana,Raoued,2026-07-27 13:59,0.6
+2026-07-27 13:45:00,1,20260727-T1-18,36.865803,10.162839,23.7,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 13:51,0.0
+2026-07-27 13:45:00,2,20260727-T2-20,36.883983,10.136025,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 13:54,0.0
+2026-07-27 13:45:00,3,20260727-T3-16,36.88564,10.129269,30.6,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 13:47,0.0
+2026-07-27 13:45:00,4,20260727-T4-13,36.890237,10.173995,60.1,17.0,outbound,moving,Ariana,Raoued,2026-07-27 13:59,0.9
+2026-07-27 13:50:00,1,20260727-T1-18,36.850168,10.121932,38.4,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 13:51,0.0
+2026-07-27 13:50:00,2,20260727-T2-20,36.877694,10.13245,42.4,204.0,inbound,moving,Borj Louzir,Mnihla,2026-07-27 13:54,0.0
+2026-07-27 13:50:00,3,20260727-T3-16,36.88187,10.139403,43.2,127.0,inbound,moving,Borj Louzir,Ariana,2026-07-27 14:04,0.0
+2026-07-27 13:50:00,4,20260727-T4-13,36.922767,10.186678,11.9,17.0,outbound,moving,Ariana,Raoued,2026-07-27 13:59,0.9
+2026-07-27 13:55:00,1,20260727-T1-18,36.8372,10.113532,57.4,189.0,inbound,moving,Mnihla,Denden,2026-07-27 13:58,0.2
+2026-07-27 13:55:00,2,20260727-T2-20,36.847866,10.115793,6.4,204.0,inbound,moving,Borj Louzir,Mnihla,2026-07-27 13:54,0.0
+2026-07-27 13:55:00,3,20260727-T3-17,36.866475,10.164694,0.0,307.0,outbound,terminal_wait,Ariana,Borj Louzir,2026-07-27 14:09,0.0
+2026-07-27 13:55:00,4,20260727-T4-14,36.923364,10.18687,0.0,197.0,inbound,terminal_wait,Raoued,Ariana,2026-07-27 14:10,0.0
+2026-07-27 14:00:00,1,20260727-T1-18,36.812786,10.108593,0.0,258.0,inbound,moving,Denden,Manouba,2026-07-27 14:13,0.0
+2026-07-27 14:00:00,2,20260727-T2-20,36.832304,10.103962,56.3,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 14:13,0.4
+2026-07-27 14:00:00,3,20260727-T3-17,36.866513,10.164656,0.0,307.0,outbound,terminal_wait,Ariana,Borj Louzir,2026-07-27 14:09,0.0
+2026-07-27 14:00:00,4,20260727-T4-14,36.923413,10.186938,0,197.0,inbound,moving,Raoued,Ariana,2026-07-27 14:10,0.0
+2026-07-27 14:05:00,1,20260727-T1-18,36.812269,10.105405,8.3,258.0,inbound,moving,Denden,Manouba,2026-07-27 14:13,0.0
+2026-07-27 14:05:00,2,20260727-T2-21,36.808904,10.086284,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 14:21,0.0
+2026-07-27 14:05:00,3,20260727-T3-17,36.868027,10.162257,34.9,307.0,outbound,moving,Ariana,Borj Louzir,2026-07-27 14:09,0.0
+2026-07-27 14:05:00,4,20260727-T4-14,36.912519,10.182681,29.3,197.0,inbound,moving,Raoued,Ariana,2026-07-27 14:10,0.0
+2026-07-27 14:10:00,1,20260727-T1-18,36.811001,10.097795,10.8,258.0,inbound,moving,Denden,Manouba,2026-07-27 14:13,0.0
+2026-07-27 14:10:00,2,20260727-T2-21,36.808874,10.08629,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 14:21,0.0
+2026-07-27 14:10:00,3,20260727-T3-17,36.884023,10.135975,0.0,287.0,outbound,at_station,Borj Louzir,Sidi Thabet,2026-07-27 14:35,0.1
+2026-07-27 14:10:00,4,20260727-T4-14,36.888383,10.173184,33.6,197.0,inbound,moving,Raoued,Ariana,2026-07-27 14:10,0.0
+2026-07-27 14:15:00,1,20260727-T1-18,36.809528,10.090008,7.8,258.0,inbound,moving,Denden,Manouba,2026-07-27 14:13,0.0
+2026-07-27 14:15:00,2,20260727-T2-21,36.810538,10.08756,25.4,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 14:21,0.0
+2026-07-27 14:15:00,3,20260727-T3-17,36.888927,10.116022,45.6,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 14:35,0.3
+2026-07-27 14:15:00,4,20260727-T4-14,36.869222,10.165782,16.5,197.0,inbound,moving,Raoued,Ariana,2026-07-27 14:10,0.0
+2026-07-27 14:20:00,1,20260727-T1-18,36.808888,10.086323,2.5,258.0,inbound,moving,Denden,Manouba,2026-07-27 14:13,0.0
+2026-07-27 14:20:00,2,20260727-T2-21,36.84322,10.112243,39.0,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 14:21,0.0
+2026-07-27 14:20:00,3,20260727-T3-17,36.900892,10.067649,53.7,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 14:35,0.3
+2026-07-27 14:20:00,4,20260727-T4-14,36.863797,10.157636,45.8,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 14:19,6.9
+2026-07-27 14:25:00,1,20260727-T1-19,36.809064,10.087492,27.1,78.0,outbound,moving,Manouba,Denden,2026-07-27 14:16,11.4
+2026-07-27 14:25:00,2,20260727-T2-21,36.855626,10.120116,54.3,24.0,outbound,moving,Mnihla,Borj Louzir,2026-07-27 14:39,0.0
+2026-07-27 14:25:00,3,20260727-T3-17,36.909467,10.033213,16.2,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 14:35,0.3
+2026-07-27 14:25:00,4,20260727-T4-14,36.847863,10.115816,7.9,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 14:19,6.9
+2026-07-27 14:30:00,1,20260727-T1-19,36.816409,10.109329,39.0,9.0,outbound,moving,Denden,Mnihla,2026-07-27 14:23,11.5
+2026-07-27 14:30:00,2,20260727-T2-22,36.884008,10.136,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 14:46,0.0
+2026-07-27 14:30:00,3,20260727-T3-18,36.909949,10.03097,0.0,107.0,inbound,terminal_wait,Sidi Thabet,Borj Louzir,2026-07-27 14:50,0.0
+2026-07-27 14:30:00,4,20260727-T4-14,36.8311,10.103061,62.0,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 14:38,6.4
+2026-07-27 14:35:00,1,20260727-T1-19,36.84785,10.115708,0.0,64.0,outbound,at_station,Mnihla,Ariana,2026-07-27 14:42,11.0
+2026-07-27 14:35:00,2,20260727-T2-22,36.884033,10.135994,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 14:46,0.0
+2026-07-27 14:35:00,3,20260727-T3-18,36.909984,10.031018,0.0,107.0,inbound,terminal_wait,Sidi Thabet,Borj Louzir,2026-07-27 14:50,0.0
+2026-07-27 14:35:00,4,20260727-T4-15,36.808864,10.086346,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 14:46,0.2
+2026-07-27 14:40:00,1,20260727-T1-19,36.860336,10.148504,54.8,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 14:42,10.8
+2026-07-27 14:40:00,2,20260727-T2-22,36.884013,10.136048,3.5,204.0,inbound,moving,Borj Louzir,Mnihla,2026-07-27 14:46,0.0
+2026-07-27 14:40:00,3,20260727-T3-18,36.904951,10.05125,45.0,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 14:50,0.0
+2026-07-27 14:40:00,4,20260727-T4-15,36.812994,10.089451,33.1,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 14:46,0.2
+2026-07-27 14:45:00,1,20260727-T1-20,36.866502,10.16471,0.0,245.0,inbound,terminal_wait,Ariana,Mnihla,2026-07-27 14:49,4.8
+2026-07-27 14:45:00,2,20260727-T2-22,36.851035,10.11753,39.2,204.0,inbound,moving,Borj Louzir,Mnihla,2026-07-27 14:46,0.0
+2026-07-27 14:45:00,3,20260727-T3-18,36.892497,10.101698,55.4,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 14:50,0.0
+2026-07-27 14:45:00,4,20260727-T4-15,36.844147,10.112949,31.8,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 14:46,0.2
+2026-07-27 14:50:00,1,20260727-T1-20,36.860087,10.147927,56.9,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 14:49,4.8
+2026-07-27 14:50:00,2,20260727-T2-22,36.841726,10.111138,41.8,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 15:05,0.0
+2026-07-27 14:50:00,3,20260727-T3-18,36.88425,10.134941,8.9,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 14:50,0.0
+2026-07-27 14:50:00,4,20260727-T4-15,36.85126,10.124669,47.5,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 14:54,0.9
+2026-07-27 14:55:00,1,20260727-T1-20,36.847757,10.115679,0.0,189.0,inbound,at_station,Mnihla,Denden,2026-07-27 14:56,4.8
+2026-07-27 14:55:00,2,20260727-T2-22,36.81056,10.087495,22.9,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 15:05,0.0
+2026-07-27 14:55:00,3,20260727-T3-18,36.872579,10.154729,62.7,127.0,inbound,moving,Borj Louzir,Ariana,2026-07-27 15:07,0.2
+2026-07-27 14:55:00,4,20260727-T4-15,36.866478,10.164589,8.2,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 14:54,0.9
+2026-07-27 15:00:00,1,20260727-T1-20,36.817713,10.109596,42.1,189.0,inbound,moving,Mnihla,Denden,2026-07-27 14:56,4.4
+2026-07-27 15:00:00,2,20260727-T2-23,36.808854,10.086335,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 15:13,0.0
+2026-07-27 15:00:00,3,20260727-T3-19,36.866495,10.164718,0.0,307.0,outbound,terminal_wait,Ariana,Borj Louzir,2026-07-27 15:12,0.0
+2026-07-27 15:00:00,4,20260727-T4-15,36.88515,10.171968,57.4,17.0,outbound,moving,Ariana,Raoued,2026-07-27 15:16,0.4
+2026-07-27 15:05:00,1,20260727-T1-20,36.809973,10.09228,49.7,258.0,inbound,moving,Denden,Manouba,2026-07-27 15:11,4.8
+2026-07-27 15:05:00,2,20260727-T2-23,36.808929,10.086271,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 15:13,0.0
+2026-07-27 15:05:00,3,20260727-T3-19,36.866551,10.164767,0.0,307.0,outbound,terminal_wait,Ariana,Borj Louzir,2026-07-27 15:12,0.0
+2026-07-27 15:05:00,4,20260727-T4-15,36.921185,10.186044,20.7,17.0,outbound,moving,Ariana,Raoued,2026-07-27 15:16,0.4
+2026-07-27 15:10:00,1,20260727-T1-21,36.808896,10.086289,0.0,78.0,outbound,terminal_wait,Manouba,Denden,2026-07-27 15:14,0.0
+2026-07-27 15:10:00,2,20260727-T2-23,36.830372,10.102491,60.6,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 15:13,0.0
+2026-07-27 15:10:00,3,20260727-T3-19,36.877116,10.147312,57.3,307.0,outbound,moving,Ariana,Borj Louzir,2026-07-27 15:12,0.0
+2026-07-27 15:10:00,4,20260727-T4-16,36.923358,10.186886,0.0,197.0,inbound,terminal_wait,Raoued,Ariana,2026-07-27 15:26,0.0
+2026-07-27 15:15:00,1,20260727-T1-21,36.812825,10.108638,0.0,9.0,outbound,at_station,Denden,Mnihla,2026-07-27 15:21,-0.1
+2026-07-27 15:15:00,2,20260727-T2-23,36.84781,10.115736,0.8,24.0,outbound,moving,Mnihla,Borj Louzir,2026-07-27 15:31,0.0
+2026-07-27 15:15:00,3,20260727-T3-19,36.885054,10.131671,27.9,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 15:38,0.0
+2026-07-27 15:15:00,4,20260727-T4-16,36.92344,10.186841,0.0,197.0,inbound,terminal_wait,Raoued,Ariana,2026-07-27 15:26,0.0
+2026-07-27 15:20:00,1,20260727-T1-21,36.841857,10.11449,44.8,9.0,outbound,moving,Denden,Mnihla,2026-07-27 15:21,0.1
+2026-07-27 15:20:00,2,20260727-T2-23,36.877706,10.132531,44.3,24.0,outbound,moving,Mnihla,Borj Louzir,2026-07-27 15:31,0.0
+2026-07-27 15:20:00,3,20260727-T3-19,36.895999,10.087546,63.9,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 15:38,0.0
+2026-07-27 15:20:00,4,20260727-T4-16,36.905712,10.180053,56.5,197.0,inbound,moving,Raoued,Ariana,2026-07-27 15:26,0.0
+2026-07-27 15:25:00,1,20260727-T1-21,36.852709,10.128645,59.2,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 15:40,0.0
+2026-07-27 15:25:00,2,20260727-T2-24,36.883948,10.135944,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 15:38,0.0
+2026-07-27 15:25:00,3,20260727-T3-19,36.907995,10.03916,32.6,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 15:38,0.0
+2026-07-27 15:25:00,4,20260727-T4-16,36.869258,10.165777,28.1,197.0,inbound,moving,Raoued,Ariana,2026-07-27 15:26,0.0
+2026-07-27 15:30:00,1,20260727-T1-22,36.866474,10.164689,0.0,245.0,inbound,terminal_wait,Ariana,Mnihla,2026-07-27 15:47,0.0
+2026-07-27 15:30:00,2,20260727-T2-24,36.883982,10.135999,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 15:38,0.0
+2026-07-27 15:30:00,3,20260727-T3-20,36.910011,10.030969,0.0,107.0,inbound,terminal_wait,Sidi Thabet,Borj Louzir,2026-07-27 15:53,0.0
+2026-07-27 15:30:00,4,20260727-T4-16,36.862353,10.153788,48.8,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 15:35,0.0
+2026-07-27 15:35:00,1,20260727-T1-22,36.86651,10.164684,0.0,245.0,inbound,terminal_wait,Ariana,Mnihla,2026-07-27 15:47,0.0
+2026-07-27 15:35:00,2,20260727-T2-24,36.867436,10.126702,61.6,204.0,inbound,moving,Borj Louzir,Mnihla,2026-07-27 15:38,0.0
+2026-07-27 15:35:00,3,20260727-T3-20,36.910032,10.031013,0.0,107.0,inbound,terminal_wait,Sidi Thabet,Borj Louzir,2026-07-27 15:53,0.0
+2026-07-27 15:35:00,4,20260727-T4-16,36.847905,10.115899,10.5,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 15:35,0.0
+2026-07-27 15:40:00,1,20260727-T1-22,36.866487,10.16468,0.0,245.0,inbound,terminal_wait,Ariana,Mnihla,2026-07-27 15:47,0.0
+2026-07-27 15:40:00,2,20260727-T2-24,36.847736,10.115576,4.2,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 15:57,0.0
+2026-07-27 15:40:00,3,20260727-T3-20,36.909453,10.033064,15.6,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 15:53,0.0
+2026-07-27 15:40:00,4,20260727-T4-16,36.832383,10.104068,57.7,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 15:54,0.4
+2026-07-27 15:45:00,1,20260727-T1-22,36.852086,10.126882,55.1,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 15:47,0.0
+2026-07-27 15:45:00,2,20260727-T2-24,36.819809,10.094493,53.6,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 15:57,0.0
+2026-07-27 15:45:00,3,20260727-T3-20,36.901271,10.06646,52.6,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 15:53,0.0
+2026-07-27 15:45:00,4,20260727-T4-17,36.80889,10.086347,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 16:02,0.0
+2026-07-27 15:50:00,1,20260727-T1-22,36.844896,10.115117,33.6,189.0,inbound,moving,Mnihla,Denden,2026-07-27 15:55,0.0
+2026-07-27 15:50:00,2,20260727-T2-25,36.808929,10.086262,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 16:05,0.0
+2026-07-27 15:50:00,3,20260727-T3-20,36.889412,10.114292,43.0,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 15:53,0.0
+2026-07-27 15:50:00,4,20260727-T4-17,36.808934,10.086314,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 16:02,0.0
+2026-07-27 15:55:00,1,20260727-T1-22,36.812861,10.108562,0.0,258.0,inbound,at_station,Denden,Manouba,2026-07-27 16:09,-0.2
+2026-07-27 15:55:00,2,20260727-T2-25,36.808921,10.086259,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 16:05,0.0
+2026-07-27 15:55:00,3,20260727-T3-20,36.883984,10.13598,0.0,127.0,inbound,at_station,Borj Louzir,Ariana,2026-07-27 16:10,1.0
+2026-07-27 15:55:00,4,20260727-T4-17,36.810078,10.087268,21.7,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 16:02,0.0
+2026-07-27 16:00:00,1,20260727-T1-23,36.808903,10.086314,0.0,78.0,outbound,terminal_wait,Manouba,Denden,2026-07-27 16:12,0.0
+2026-07-27 16:00:00,2,20260727-T2-25,36.816626,10.092134,51.0,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 16:05,0.0
+2026-07-27 16:00:00,3,20260727-T3-20,36.866758,10.16432,14.7,127.0,inbound,moving,Borj Louzir,Ariana,2026-07-27 16:10,0.7
+2026-07-27 16:00:00,4,20260727-T4-17,36.844143,10.112917,38.7,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 16:02,0.0
+2026-07-27 16:05:00,1,20260727-T1-23,36.808878,10.08633,0.0,78.0,outbound,terminal_wait,Manouba,Denden,2026-07-27 16:12,0.0
+2026-07-27 16:05:00,2,20260727-T2-25,36.847545,10.11552,9.2,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 16:05,0.0
+2026-07-27 16:05:00,3,20260727-T3-21,36.866446,10.164756,0.0,307.0,outbound,terminal_wait,Ariana,Borj Louzir,2026-07-27 16:15,0.0
+2026-07-27 16:05:00,4,20260727-T4-17,36.850069,10.121698,37.2,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 16:10,0.0
+2026-07-27 16:10:00,1,20260727-T1-23,36.809344,10.088812,38.7,78.0,outbound,moving,Manouba,Denden,2026-07-27 16:12,0.0
+2026-07-27 16:10:00,2,20260727-T2-25,36.862233,10.123833,53.5,24.0,outbound,moving,Mnihla,Borj Louzir,2026-07-27 16:23,0.0
+2026-07-27 16:10:00,3,20260727-T3-21,36.866491,10.164736,0.0,307.0,outbound,terminal_wait,Ariana,Borj Louzir,2026-07-27 16:15,0.0
+2026-07-27 16:10:00,4,20260727-T4-17,36.865448,10.161907,25.1,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 16:10,0.0
+2026-07-27 16:15:00,1,20260727-T1-23,36.818139,10.10971,48.4,9.0,outbound,moving,Denden,Mnihla,2026-07-27 16:19,0.0
+2026-07-27 16:15:00,2,20260727-T2-26,36.884011,10.136039,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 16:30,0.0
+2026-07-27 16:15:00,3,20260727-T3-21,36.884033,10.135988,1.7,307.0,outbound,moving,Ariana,Borj Louzir,2026-07-27 16:15,0.0
+2026-07-27 16:15:00,4,20260727-T4-17,36.878432,10.169357,50.9,17.0,outbound,moving,Ariana,Raoued,2026-07-27 16:32,0.2
+2026-07-27 16:20:00,1,20260727-T1-23,36.847794,10.115737,0.0,64.0,outbound,at_station,Mnihla,Ariana,2026-07-27 16:38,-0.5
+2026-07-27 16:20:00,2,20260727-T2-26,36.884025,10.135991,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 16:30,0.0
+2026-07-27 16:20:00,3,20260727-T3-21,36.888025,10.119576,43.0,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 16:41,0.0
+2026-07-27 16:20:00,4,20260727-T4-17,36.918096,10.184804,36.6,17.0,outbound,moving,Ariana,Raoued,2026-07-27 16:32,0.2
+2026-07-27 16:25:00,1,20260727-T1-23,36.85877,10.144332,58.3,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 16:38,0.0
+2026-07-27 16:25:00,2,20260727-T2-26,36.881397,10.134499,29.1,204.0,inbound,moving,Borj Louzir,Mnihla,2026-07-27 16:30,0.0
+2026-07-27 16:25:00,3,20260727-T3-21,36.900753,10.068313,57.7,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 16:41,0.0
+2026-07-27 16:25:00,4,20260727-T4-18,36.923383,10.186919,0.0,197.0,inbound,terminal_wait,Raoued,Ariana,2026-07-27 16:42,0.0
+2026-07-27 16:30:00,1,20260727-T1-24,36.866496,10.164693,0.0,245.0,inbound,terminal_wait,Ariana,Mnihla,2026-07-27 16:46,0.0
+2026-07-27 16:30:00,2,20260727-T2-26,36.849884,10.116822,28.3,204.0,inbound,moving,Borj Louzir,Mnihla,2026-07-27 16:30,0.0
+2026-07-27 16:30:00,3,20260727-T3-21,36.90966,10.032326,14.2,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 16:41,0.0
+2026-07-27 16:30:00,4,20260727-T4-18,36.923367,10.186905,0.0,197.0,inbound,terminal_wait,Raoued,Ariana,2026-07-27 16:42,0.0
+2026-07-27 16:35:00,1,20260727-T1-24,36.866518,10.164631,0.0,245.0,inbound,terminal_wait,Ariana,Mnihla,2026-07-27 16:46,0.0
+2026-07-27 16:35:00,2,20260727-T2-26,36.834809,10.105906,58.5,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 16:49,0.2
+2026-07-27 16:35:00,3,20260727-T3-22,36.910018,10.030985,0.0,107.0,inbound,terminal_wait,Sidi Thabet,Borj Louzir,2026-07-27 16:56,0.0
+2026-07-27 16:35:00,4,20260727-T4-18,36.915433,10.183815,38.1,197.0,inbound,moving,Raoued,Ariana,2026-07-27 16:42,0.0
+2026-07-27 16:40:00,1,20260727-T1-24,36.865207,10.161306,23.4,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 16:46,0.0
+2026-07-27 16:40:00,2,20260727-T2-27,36.808924,10.086302,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 16:57,0.0
+2026-07-27 16:40:00,3,20260727-T3-22,36.909988,10.031034,0.0,107.0,inbound,terminal_wait,Sidi Thabet,Borj Louzir,2026-07-27 16:56,0.0
+2026-07-27 16:40:00,4,20260727-T4-18,36.879134,10.169603,44.4,197.0,inbound,moving,Raoued,Ariana,2026-07-27 16:42,0.0
+2026-07-27 16:45:00,1,20260727-T1-24,36.851695,10.125906,39.3,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 16:46,0.0
+2026-07-27 16:45:00,2,20260727-T2-27,36.808933,10.086361,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 16:57,0.0
+2026-07-27 16:45:00,3,20260727-T3-22,36.907267,10.04217,31.9,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 16:56,0.0
+2026-07-27 16:45:00,4,20260727-T4-18,36.866326,10.164042,16.5,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 16:51,0.7
+2026-07-27 16:50:00,1,20260727-T1-24,36.844217,10.114976,37.0,189.0,inbound,moving,Mnihla,Denden,2026-07-27 16:53,1.7
+2026-07-27 16:50:00,2,20260727-T2-27,36.809107,10.08643,11.1,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 16:57,0.0
+2026-07-27 16:50:00,3,20260727-T3-22,36.896328,10.086156,56.6,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 16:56,0.0
+2026-07-27 16:50:00,4,20260727-T4-18,36.85092,10.123847,45.3,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 16:51,0.7
+2026-07-27 16:55:00,1,20260727-T1-24,36.812835,10.108562,0.0,258.0,inbound,at_station,Denden,Manouba,2026-07-27 17:07,1.7
+2026-07-27 16:55:00,2,20260727-T2-27,36.840306,10.110052,49.9,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 16:57,0.0
+2026-07-27 16:55:00,3,20260727-T3-22,36.886007,10.127908,30.4,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 16:56,0.0
+2026-07-27 16:55:00,4,20260727-T4-18,36.843229,10.112249,40.0,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 17:10,1.0
+2026-07-27 17:00:00,1,20260727-T1-25,36.808902,10.086321,0.0,78.0,outbound,terminal_wait,Manouba,Denden,2026-07-27 17:10,0.0
+2026-07-27 17:00:00,2,20260727-T2-27,36.851069,10.117539,34.2,24.0,outbound,moving,Mnihla,Borj Louzir,2026-07-27 17:15,0.0
+2026-07-27 17:00:00,3,20260727-T3-22,36.881514,10.140095,44.4,127.0,inbound,moving,Borj Louzir,Ariana,2026-07-27 17:13,0.8
+2026-07-27 17:00:00,4,20260727-T4-18,36.810376,10.087433,23.7,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 17:10,1.0
+2026-07-27 17:05:00,1,20260727-T1-25,36.808904,10.086275,0.0,78.0,outbound,terminal_wait,Manouba,Denden,2026-07-27 17:10,0.0
+2026-07-27 17:05:00,2,20260727-T2-27,36.883278,10.135583,17.0,24.0,outbound,moving,Mnihla,Borj Louzir,2026-07-27 17:15,0.0
+2026-07-27 17:05:00,3,20260727-T3-23,36.866548,10.164717,0.0,307.0,outbound,terminal_wait,Ariana,Borj Louzir,2026-07-27 17:18,0.0
+2026-07-27 17:05:00,4,20260727-T4-19,36.808887,10.086267,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 17:18,0.0
+2026-07-27 17:10:00,1,20260727-T1-25,36.811775,10.102527,43.9,78.0,outbound,moving,Manouba,Denden,2026-07-27 17:10,0.0
+2026-07-27 17:10:00,2,20260727-T2-28,36.883965,10.136037,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 17:22,0.0
+2026-07-27 17:10:00,3,20260727-T3-23,36.866493,10.164702,0.0,307.0,outbound,terminal_wait,Ariana,Borj Louzir,2026-07-27 17:18,0.0
+2026-07-27 17:10:00,4,20260727-T4-19,36.808941,10.086253,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 17:18,0.0
+2026-07-27 17:15:00,1,20260727-T1-25,36.82523,10.11114,54.3,9.0,outbound,moving,Denden,Mnihla,2026-07-27 17:17,0.7
+2026-07-27 17:15:00,2,20260727-T2-28,36.883982,10.135954,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 17:22,0.0
+2026-07-27 17:15:00,3,20260727-T3-23,36.871657,10.156181,50.1,307.0,outbound,moving,Ariana,Borj Louzir,2026-07-27 17:18,0.0
+2026-07-27 17:15:00,4,20260727-T4-19,36.828049,10.100751,50.9,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 17:18,0.0
+2026-07-27 17:20:00,1,20260727-T1-25,36.847821,10.115789,4.6,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 17:36,0.9
+2026-07-27 17:20:00,2,20260727-T2-28,36.860863,10.12302,55.5,204.0,inbound,moving,Borj Louzir,Mnihla,2026-07-27 17:22,0.0
+2026-07-27 17:20:00,3,20260727-T3-23,36.884122,10.135541,8.4,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 17:44,0.3
+2026-07-27 17:20:00,4,20260727-T4-19,36.847791,10.115684,0.0,64.0,outbound,at_station,Mnihla,Ariana,2026-07-27 17:26,1.5
+2026-07-27 17:25:00,1,20260727-T1-25,36.861563,10.151845,51.0,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 17:36,0.9
+2026-07-27 17:25:00,2,20260727-T2-28,36.845519,10.113943,29.8,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 17:41,0.3
+2026-07-27 17:25:00,3,20260727-T3-23,36.892254,10.102653,58.5,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 17:44,0.3
+2026-07-27 17:25:00,4,20260727-T4-19,36.860105,10.147929,58.4,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 17:26,1.4
+2026-07-27 17:30:00,1,20260727-T1-26,36.866479,10.164701,0.0,245.0,inbound,terminal_wait,Ariana,Mnihla,2026-07-27 17:44,0.0
+2026-07-27 17:30:00,2,20260727-T2-28,36.811143,10.087973,30.7,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 17:41,0.3
+2026-07-27 17:30:00,3,20260727-T3-23,36.905273,10.050146,47.6,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 17:44,0.3
+2026-07-27 17:30:00,4,20260727-T4-19,36.868171,10.165326,20.7,17.0,outbound,moving,Ariana,Raoued,2026-07-27 17:48,0.9
+2026-07-27 17:35:00,1,20260727-T1-26,36.866482,10.16472,0.0,245.0,inbound,terminal_wait,Ariana,Mnihla,2026-07-27 17:44,0.0
+2026-07-27 17:35:00,2,20260727-T2-29,36.80886,10.08634,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 17:49,0.0
+2026-07-27 17:35:00,3,20260727-T3-24,36.910015,10.030988,0.0,107.0,inbound,terminal_wait,Sidi Thabet,Borj Louzir,2026-07-27 17:59,0.0
+2026-07-27 17:35:00,4,20260727-T4-19,36.903362,10.179057,59.1,17.0,outbound,moving,Ariana,Raoued,2026-07-27 17:48,0.9
+2026-07-27 17:40:00,1,20260727-T1-26,36.85824,10.142892,60.8,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 17:44,0.0
+2026-07-27 17:40:00,2,20260727-T2-29,36.808932,10.086317,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 17:49,0.0
+2026-07-27 17:40:00,3,20260727-T3-24,36.909962,10.030968,0.0,107.0,inbound,terminal_wait,Sidi Thabet,Borj Louzir,2026-07-27 17:59,0.0
+2026-07-27 17:40:00,4,20260727-T4-20,36.9234,10.186913,0.0,197.0,inbound,terminal_wait,Raoued,Ariana,2026-07-27 17:58,0.0
+2026-07-27 17:45:00,1,20260727-T1-26,36.847809,10.115684,0.0,189.0,inbound,at_station,Mnihla,Denden,2026-07-27 17:51,-0.1
+2026-07-27 17:45:00,2,20260727-T2-29,36.820799,10.095266,48.0,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 17:49,0.0
+2026-07-27 17:45:00,3,20260727-T3-24,36.909971,10.031198,1.9,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 17:59,0.0
+2026-07-27 17:45:00,4,20260727-T4-20,36.923407,10.186918,0.0,197.0,inbound,terminal_wait,Raoued,Ariana,2026-07-27 17:58,0.0
+2026-07-27 17:50:00,1,20260727-T1-26,36.817929,10.109716,40.7,189.0,inbound,moving,Mnihla,Denden,2026-07-27 17:51,0.0
+2026-07-27 17:50:00,2,20260727-T2-29,36.847059,10.115164,14.4,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 17:49,0.0
+2026-07-27 17:50:00,3,20260727-T3-24,36.903799,10.056161,46.1,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 17:59,0.0
+2026-07-27 17:50:00,4,20260727-T4-20,36.921161,10.186025,18.9,197.0,inbound,moving,Raoued,Ariana,2026-07-27 17:58,0.0
+2026-07-27 17:55:00,1,20260727-T1-26,36.809705,10.090839,44.6,258.0,inbound,moving,Denden,Manouba,2026-07-27 18:05,0.2
+2026-07-27 17:55:00,2,20260727-T2-29,36.860828,10.12297,56.3,24.0,outbound,moving,Mnihla,Borj Louzir,2026-07-27 18:07,1.6
+2026-07-27 17:55:00,3,20260727-T3-24,36.892094,10.103265,50.6,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 17:59,0.0
+2026-07-27 17:55:00,4,20260727-T4-20,36.892751,10.174945,50.4,197.0,inbound,moving,Raoued,Ariana,2026-07-27 17:58,0.0
+2026-07-27 18:00:00,1,20260727-T1-27,36.808848,10.086327,0.0,78.0,outbound,terminal_wait,Manouba,Denden,2026-07-27 18:08,0.0
+2026-07-27 18:00:00,2,20260727-T2-30,36.883965,10.136012,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 18:14,0.0
+2026-07-27 18:00:00,3,20260727-T3-24,36.884421,10.134424,14.2,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 17:59,0.0
+2026-07-27 18:00:00,4,20260727-T4-20,36.867345,10.165023,11.1,197.0,inbound,moving,Raoued,Ariana,2026-07-27 17:58,0.0
+2026-07-27 18:05:00,1,20260727-T1-27,36.808878,10.086224,0.0,78.0,outbound,terminal_wait,Manouba,Denden,2026-07-27 18:08,0.0
+2026-07-27 18:05:00,2,20260727-T2-30,36.884008,10.135937,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 18:14,0.0
+2026-07-27 18:05:00,3,20260727-T3-24,36.874179,10.152166,63.7,127.0,inbound,moving,Borj Louzir,Ariana,2026-07-27 18:16,1.5
+2026-07-27 18:05:00,4,20260727-T4-20,36.859714,10.146889,61.8,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 18:07,2.2
+2026-07-27 18:10:00,1,20260727-T1-27,36.812778,10.108577,1.8,9.0,outbound,moving,Denden,Mnihla,2026-07-27 18:16,0.2
+2026-07-27 18:10:00,2,20260727-T2-30,36.875908,10.131439,44.1,204.0,inbound,moving,Borj Louzir,Mnihla,2026-07-27 18:14,0.0
+2026-07-27 18:10:00,3,20260727-T3-25,36.866509,10.164646,0.0,307.0,outbound,terminal_wait,Ariana,Borj Louzir,2026-07-27 18:21,0.0
+2026-07-27 18:10:00,4,20260727-T4-20,36.847778,10.11572,0.0,211.0,inbound,at_station,Mnihla,Manouba,2026-07-27 18:26,1.7
+2026-07-27 18:15:00,1,20260727-T1-27,36.846549,10.115502,25.5,9.0,outbound,moving,Denden,Mnihla,2026-07-27 18:16,0.2
+2026-07-27 18:15:00,2,20260727-T2-30,36.848107,10.115846,10.1,204.0,inbound,moving,Borj Louzir,Mnihla,2026-07-27 18:14,0.0
+2026-07-27 18:15:00,3,20260727-T3-25,36.866507,10.164692,0.0,307.0,outbound,terminal_wait,Ariana,Borj Louzir,2026-07-27 18:21,0.0
+2026-07-27 18:15:00,4,20260727-T4-20,36.825548,10.098862,57.5,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 18:26,2.0
+2026-07-27 18:20:00,1,20260727-T1-27,36.854494,10.133229,61.2,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 18:34,0.0
+2026-07-27 18:20:00,2,20260727-T2-30,36.834047,10.105302,53.3,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 18:33,1.1
+2026-07-27 18:20:00,3,20260727-T3-25,36.877253,10.147097,44.1,307.0,outbound,moving,Ariana,Borj Louzir,2026-07-27 18:21,0.0
+2026-07-27 18:20:00,4,20260727-T4-21,36.808864,10.086327,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 18:34,0.0
+2026-07-27 18:25:00,1,20260727-T1-28,36.866523,10.164687,0.0,245.0,inbound,terminal_wait,Ariana,Mnihla,2026-07-27 18:42,0.0
+2026-07-27 18:25:00,2,20260727-T2-30,36.808932,10.086364,2.3,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 18:33,1.1
+2026-07-27 18:25:00,3,20260727-T3-25,36.884384,10.134499,16.1,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 18:47,1.8
+2026-07-27 18:25:00,4,20260727-T4-21,36.80889,10.086271,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 18:34,0.0
+2026-07-27 18:30:00,1,20260727-T1-28,36.866488,10.16472,0.0,245.0,inbound,terminal_wait,Ariana,Mnihla,2026-07-27 18:42,0.0
+2026-07-27 18:30:00,2,20260727-T2-31,36.80892,10.086301,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 18:41,0.0
+2026-07-27 18:30:00,3,20260727-T3-25,36.893783,10.096606,63.6,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 18:47,1.8
+2026-07-27 18:30:00,4,20260727-T4-21,36.8248,10.09825,59.4,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 18:34,0.0
+2026-07-27 18:35:00,1,20260727-T1-28,36.866438,10.164466,11.1,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 18:42,0.0
+2026-07-27 18:35:00,2,20260727-T2-31,36.812715,10.089157,35.2,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 18:41,0.0
+2026-07-27 18:35:00,3,20260727-T3-25,36.906587,10.045003,44.0,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 18:47,1.8
+2026-07-27 18:35:00,4,20260727-T4-21,36.84776,10.115703,0.0,64.0,outbound,at_station,Mnihla,Ariana,2026-07-27 18:43,0.0
+2026-07-27 18:40:00,1,20260727-T1-28,36.85223,10.127288,50.5,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 18:42,0.0
+2026-07-27 18:40:00,2,20260727-T2-31,36.845781,10.114209,27.2,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 18:41,0.0
+2026-07-27 18:40:00,3,20260727-T3-26,36.909978,10.031014,0.0,107.0,inbound,terminal_wait,Sidi Thabet,Borj Louzir,2026-07-27 19:02,0.0
+2026-07-27 18:40:00,4,20260727-T4-21,36.859117,10.145392,55.5,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 18:43,0.0
+2026-07-27 18:45:00,1,20260727-T1-28,36.842592,10.11469,42.0,189.0,inbound,moving,Mnihla,Denden,2026-07-27 18:49,0.2
+2026-07-27 18:45:00,2,20260727-T2-31,36.859895,10.122499,58.6,24.0,outbound,moving,Mnihla,Borj Louzir,2026-07-27 18:59,0.0
+2026-07-27 18:45:00,3,20260727-T3-26,36.910012,10.030978,0.0,107.0,inbound,terminal_wait,Sidi Thabet,Borj Louzir,2026-07-27 19:02,0.0
+2026-07-27 18:45:00,4,20260727-T4-21,36.867363,10.16504,14.3,17.0,outbound,moving,Ariana,Raoued,2026-07-27 19:04,0.1
+2026-07-27 18:50:00,1,20260727-T1-28,36.812793,10.108628,0.0,258.0,inbound,at_station,Denden,Manouba,2026-07-27 19:03,0.1
+2026-07-27 18:50:00,2,20260727-T2-32,36.884044,10.136,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 19:06,0.0
+2026-07-27 18:50:00,3,20260727-T3-26,36.908075,10.038805,34.4,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 19:02,0.0
+2026-07-27 18:50:00,4,20260727-T4-21,36.900525,10.177968,60.0,17.0,outbound,moving,Ariana,Raoued,2026-07-27 19:04,0.1
+2026-07-27 18:55:00,1,20260727-T1-29,36.808936,10.086302,0.0,78.0,outbound,terminal_wait,Manouba,Denden,2026-07-27 19:06,0.0
+2026-07-27 18:55:00,2,20260727-T2-32,36.884009,10.136013,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 19:06,0.0
+2026-07-27 18:55:00,3,20260727-T3-26,36.89566,10.088927,65.6,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 19:02,0.0
+2026-07-27 18:55:00,4,20260727-T4-22,36.923397,10.186928,0.0,197.0,inbound,terminal_wait,Raoued,Ariana,2026-07-27 19:15,0.0
+2026-07-27 19:00:00,1,20260727-T1-29,36.808944,10.086262,0.0,78.0,outbound,terminal_wait,Manouba,Denden,2026-07-27 19:06,0.0
+2026-07-27 19:00:00,2,20260727-T2-32,36.883334,10.135599,16.2,204.0,inbound,moving,Borj Louzir,Mnihla,2026-07-27 19:06,0.0
+2026-07-27 19:00:00,3,20260727-T3-26,36.884744,10.132874,22.1,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 19:02,0.0
+2026-07-27 19:00:00,4,20260727-T4-22,36.923352,10.186887,0.0,197.0,inbound,terminal_wait,Raoued,Ariana,2026-07-27 19:15,0.0
+2026-07-27 19:05:00,1,20260727-T1-29,36.810179,10.093707,54.3,78.0,outbound,moving,Manouba,Denden,2026-07-27 19:06,0.0
+2026-07-27 19:05:00,2,20260727-T2-32,36.851437,10.117741,33.6,204.0,inbound,moving,Borj Louzir,Mnihla,2026-07-27 19:06,0.0
+2026-07-27 19:05:00,3,20260727-T3-26,36.882535,10.138463,33.0,127.0,inbound,moving,Borj Louzir,Ariana,2026-07-27 19:19,0.0
+2026-07-27 19:05:00,4,20260727-T4-22,36.923137,10.186771,7.4,197.0,inbound,moving,Raoued,Ariana,2026-07-27 19:15,0.0
+2026-07-27 19:10:00,1,20260727-T1-29,36.81882,10.109861,42.7,9.0,outbound,moving,Denden,Mnihla,2026-07-27 19:14,0.3
+2026-07-27 19:10:00,2,20260727-T2-32,36.840918,10.110464,43.5,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 19:25,0.3
+2026-07-27 19:10:00,3,20260727-T3-27,36.866434,10.16471,0.0,307.0,outbound,terminal_wait,Ariana,Borj Louzir,2026-07-27 19:24,0.0
+2026-07-27 19:10:00,4,20260727-T4-22,36.890974,10.17424,61.9,197.0,inbound,moving,Raoued,Ariana,2026-07-27 19:15,0.0
+2026-07-27 19:15:00,1,20260727-T1-29,36.847769,10.115675,0.0,64.0,outbound,at_station,Mnihla,Ariana,2026-07-27 19:32,0.6
+2026-07-27 19:15:00,2,20260727-T2-32,36.810507,10.087467,23.4,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 19:25,0.3
+2026-07-27 19:15:00,3,20260727-T3-27,36.866483,10.164645,0.0,307.0,outbound,terminal_wait,Ariana,Borj Louzir,2026-07-27 19:24,0.0
+2026-07-27 19:15:00,4,20260727-T4-22,36.86657,10.164694,0.0,245.0,inbound,at_station,Ariana,Mnihla,2026-07-27 19:23,-0.5
+2026-07-27 19:20:00,1,20260727-T1-29,36.858581,10.143826,54.7,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 19:32,0.4
+2026-07-27 19:20:00,2,20260727-T2-33,36.808942,10.08632,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 19:33,0.0
+2026-07-27 19:20:00,3,20260727-T3-27,36.86816,10.16188,37.3,307.0,outbound,moving,Ariana,Borj Louzir,2026-07-27 19:24,0.0
+2026-07-27 19:20:00,4,20260727-T4-22,36.857401,10.140801,56.8,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 19:23,0.0
+2026-07-27 19:25:00,1,20260727-T1-30,36.86652,10.164686,0.0,245.0,inbound,terminal_wait,Ariana,Mnihla,2026-07-27 19:40,0.0
+2026-07-27 19:25:00,2,20260727-T2-33,36.808935,10.086251,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 19:33,0.0
+2026-07-27 19:25:00,3,20260727-T3-27,36.884012,10.135993,0.0,287.0,outbound,at_station,Borj Louzir,Sidi Thabet,2026-07-27 19:50,-0.3
+2026-07-27 19:25:00,4,20260727-T4-22,36.847818,10.115674,1.1,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 19:42,0.3
+2026-07-27 19:30:00,1,20260727-T1-30,36.86647,10.164668,0.0,245.0,inbound,terminal_wait,Ariana,Mnihla,2026-07-27 19:40,0.0
+2026-07-27 19:30:00,2,20260727-T2-33,36.834517,10.105679,58.0,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 19:33,0.0
+2026-07-27 19:30:00,3,20260727-T3-27,36.889715,10.11292,47.9,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 19:50,0.0
+2026-07-27 19:30:00,4,20260727-T4-22,36.817444,10.092667,54.6,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 19:42,0.3
+2026-07-27 19:35:00,1,20260727-T1-30,36.862623,10.154384,49.7,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 19:40,0.0
+2026-07-27 19:35:00,2,20260727-T2-33,36.848562,10.116125,13.7,24.0,outbound,moving,Mnihla,Borj Louzir,2026-07-27 19:51,0.0
+2026-07-27 19:35:00,3,20260727-T3-27,36.902149,10.062869,52.0,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 19:50,0.0
+2026-07-27 19:35:00,4,20260727-T4-23,36.808893,10.086353,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 19:50,0.0
+2026-07-27 19:40:00,1,20260727-T1-30,36.847845,10.115781,6.1,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 19:40,0.0
+2026-07-27 19:40:00,2,20260727-T2-33,36.879546,10.133484,37.1,24.0,outbound,moving,Mnihla,Borj Louzir,2026-07-27 19:51,0.0
+2026-07-27 19:40:00,3,20260727-T3-27,36.909865,10.031756,10.9,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 19:50,0.0
+2026-07-27 19:40:00,4,20260727-T4-23,36.808884,10.086319,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 19:50,0.0
+2026-07-27 19:45:00,1,20260727-T1-30,36.827431,10.111627,57.1,189.0,inbound,moving,Mnihla,Denden,2026-07-27 19:47,0.0
+2026-07-27 19:45:00,2,20260727-T2-34,36.883986,10.135995,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 19:58,0.0
+2026-07-27 19:45:00,3,20260727-T3-28,36.90999,10.031021,0.0,107.0,inbound,terminal_wait,Sidi Thabet,Borj Louzir,2026-07-27 20:05,0.0
+2026-07-27 19:45:00,4,20260727-T4-23,36.816545,10.092089,45.7,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 19:50,0.0
+2026-07-27 19:50:00,1,20260727-T1-30,36.812018,10.104275,43.0,258.0,inbound,moving,Denden,Manouba,2026-07-27 20:01,0.4
+2026-07-27 19:50:00,2,20260727-T2-34,36.884023,10.135945,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 19:58,0.0
+2026-07-27 19:50:00,3,20260727-T3-28,36.910038,10.031014,0.0,107.0,inbound,terminal_wait,Sidi Thabet,Borj Louzir,2026-07-27 20:05,0.0
+2026-07-27 19:50:00,4,20260727-T4-23,36.846954,10.115065,16.5,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 19:50,0.0
+2026-07-27 19:55:00,1,20260727-T1-31,36.808869,10.086267,0.0,78.0,outbound,terminal_wait,Manouba,Denden,2026-07-27 20:05,0.0
+2026-07-27 19:55:00,2,20260727-T2-34,36.878581,10.13296,19.8,204.0,inbound,moving,Borj Louzir,Mnihla,2026-07-27 19:58,0.0
+2026-07-27 19:55:00,3,20260727-T3-28,36.904732,10.052298,48.8,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 20:05,0.0
+2026-07-27 19:55:00,4,20260727-T4-23,36.855402,10.135619,59.4,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 19:59,0.1
+2026-07-27 20:00:00,1,20260727-T1-31,36.808909,10.086364,0.0,78.0,outbound,terminal_wait,Manouba,Denden,2026-07-27 20:05,0.0
+2026-07-27 20:00:00,2,20260727-T2-34,36.860713,10.122953,27.3,204.0,inbound,moving,Borj Louzir,Mnihla,2026-07-27 19:58,0.0
+2026-07-27 20:00:00,3,20260727-T3-28,36.891811,10.104478,55.5,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 20:05,0.0
+2026-07-27 20:00:00,4,20260727-T4-23,36.866466,10.164714,0.0,17.0,outbound,at_station,Ariana,Raoued,2026-07-27 20:20,-0.0
+2026-07-27 20:05:00,1,20260727-T1-31,36.812808,10.108606,1.8,78.0,outbound,moving,Manouba,Denden,2026-07-27 20:05,0.0
+2026-07-27 20:05:00,2,20260727-T2-34,36.848203,10.115896,4.9,204.0,inbound,moving,Borj Louzir,Mnihla,2026-07-27 19:58,0.0
+2026-07-27 20:05:00,3,20260727-T3-28,36.884057,10.135689,6.5,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 20:05,0.0
+2026-07-27 20:05:00,4,20260727-T4-23,36.892458,10.174856,61.3,17.0,outbound,moving,Ariana,Raoued,2026-07-27 20:20,0.1
+2026-07-27 20:10:00,1,20260727-T1-31,36.837809,10.113687,54.0,9.0,outbound,moving,Denden,Mnihla,2026-07-27 20:12,0.0
+2026-07-27 20:10:00,2,20260727-T2-34,36.836314,10.106955,51.9,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 20:17,7.6
+2026-07-27 20:10:00,3,20260727-T3-28,36.870974,10.157277,57.7,127.0,inbound,moving,Borj Louzir,Ariana,2026-07-27 20:22,0.0
+2026-07-27 20:10:00,4,20260727-T4-23,36.923278,10.186858,6.2,17.0,outbound,moving,Ariana,Raoued,2026-07-27 20:20,0.1
+2026-07-27 20:15:00,1,20260727-T1-31,36.850093,10.121498,37.0,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 20:30,0.0
+2026-07-27 20:15:00,2,20260727-T2-34,36.809185,10.086539,8.4,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 20:17,7.6
+2026-07-27 20:15:00,3,20260727-T3-29,36.866482,10.164735,0.0,307.0,outbound,terminal_wait,Ariana,Borj Louzir,2026-07-27 20:27,0.0
+2026-07-27 20:15:00,4,20260727-T4-24,36.923367,10.186892,0.0,197.0,inbound,terminal_wait,Raoued,Ariana,2026-07-27 20:31,0.0
+2026-07-27 20:20:00,1,20260727-T1-31,36.865608,10.162384,27.1,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 20:30,0.0
+2026-07-27 20:20:00,2,20260727-T2-35,36.809375,10.086653,12.7,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 20:25,2.2
+2026-07-27 20:20:00,3,20260727-T3-29,36.866476,10.164737,0.0,307.0,outbound,terminal_wait,Ariana,Borj Louzir,2026-07-27 20:27,0.0
+2026-07-27 20:20:00,4,20260727-T4-24,36.923393,10.186938,0.0,197.0,inbound,terminal_wait,Raoued,Ariana,2026-07-27 20:31,0.0
+2026-07-27 20:25:00,1,20260727-T1-32,36.866485,10.164695,0.0,245.0,inbound,terminal_wait,Ariana,Mnihla,2026-07-27 20:38,0.0
+2026-07-27 20:25:00,2,20260727-T2-35,36.840608,10.110233,47.1,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 20:25,2.2
+2026-07-27 20:25:00,3,20260727-T3-29,36.878353,10.145217,61.0,307.0,outbound,moving,Ariana,Borj Louzir,2026-07-27 20:27,0.0
+2026-07-27 20:25:00,4,20260727-T4-24,36.905216,10.179817,52.7,197.0,inbound,moving,Raoued,Ariana,2026-07-27 20:31,0.0
+2026-07-27 20:30:00,1,20260727-T1-32,36.866475,10.164674,0.0,245.0,inbound,terminal_wait,Ariana,Mnihla,2026-07-27 20:38,0.0
+2026-07-27 20:30:00,2,20260727-T2-35,36.852867,10.118536,37.8,24.0,outbound,moving,Mnihla,Borj Louzir,2026-07-27 20:43,1.9
+2026-07-27 20:30:00,3,20260727-T3-29,36.885071,10.131637,25.0,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 20:53,0.0
+2026-07-27 20:30:00,4,20260727-T4-24,36.87066,10.166336,26.4,197.0,inbound,moving,Raoued,Ariana,2026-07-27 20:31,0.0
+2026-07-27 20:35:00,1,20260727-T1-32,36.854925,10.134393,60.6,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 20:38,0.0
+2026-07-27 20:35:00,2,20260727-T2-35,36.883338,10.135645,18.2,24.0,outbound,moving,Mnihla,Borj Louzir,2026-07-27 20:43,1.9
+2026-07-27 20:35:00,3,20260727-T3-29,36.896043,10.087402,63.5,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 20:53,0.0
+2026-07-27 20:35:00,4,20260727-T4-24,36.863069,10.155567,53.4,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 20:39,0.9
+2026-07-27 20:40:00,1,20260727-T1-32,36.847152,10.115596,17.3,189.0,inbound,moving,Mnihla,Denden,2026-07-27 20:45,0.0
+2026-07-27 20:40:00,2,20260727-T2-36,36.883943,10.135992,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 20:50,0.0
+2026-07-27 20:40:00,3,20260727-T3-29,36.907978,10.03895,32.8,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 20:53,0.0
+2026-07-27 20:40:00,4,20260727-T4-24,36.847797,10.115685,0.3,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 20:39,0.9
+2026-07-27 20:45:00,1,20260727-T1-32,36.813173,10.108641,13.5,189.0,inbound,moving,Mnihla,Denden,2026-07-27 20:45,0.0
+2026-07-27 20:45:00,2,20260727-T2-36,36.878057,10.132697,48.4,204.0,inbound,moving,Borj Louzir,Mnihla,2026-07-27 20:50,0.0
+2026-07-27 20:45:00,3,20260727-T3-30,36.910031,10.030976,0.0,107.0,inbound,terminal_wait,Sidi Thabet,Borj Louzir,2026-07-27 21:08,0.0
+2026-07-27 20:45:00,4,20260727-T4-24,36.827788,10.100495,58.7,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 20:58,0.0
+2026-07-27 20:50:00,1,20260727-T1-33,36.808852,10.086319,0.0,78.0,outbound,terminal_wait,Manouba,Denden,2026-07-27 21:03,0.0
+2026-07-27 20:50:00,2,20260727-T2-36,36.847832,10.1157,2.1,204.0,inbound,moving,Borj Louzir,Mnihla,2026-07-27 20:50,0.0
+2026-07-27 20:50:00,3,20260727-T3-30,36.910011,10.031046,0.0,107.0,inbound,terminal_wait,Sidi Thabet,Borj Louzir,2026-07-27 21:08,0.0
+2026-07-27 20:50:00,4,20260727-T4-25,36.808902,10.086269,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 21:06,0.0
+2026-07-27 20:55:00,1,20260727-T1-33,36.808866,10.086279,0.0,78.0,outbound,terminal_wait,Manouba,Denden,2026-07-27 21:03,0.0
+2026-07-27 20:55:00,2,20260727-T2-36,36.829287,10.10159,58.4,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 21:09,0.0
+2026-07-27 20:55:00,3,20260727-T3-30,36.909488,10.033181,16.7,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 21:08,0.0
+2026-07-27 20:55:00,4,20260727-T4-25,36.80888,10.086319,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 21:06,0.0
+2026-07-27 21:00:00,1,20260727-T1-33,36.808899,10.086329,5.7,78.0,outbound,moving,Manouba,Denden,2026-07-27 21:03,0.0
+2026-07-27 21:00:00,2,20260727-T2-37,36.808934,10.086259,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 21:17,0.0
+2026-07-27 21:00:00,3,20260727-T3-30,36.900687,10.068775,55.1,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 21:08,0.0
+2026-07-27 21:00:00,4,20260727-T4-25,36.810896,10.08783,24.7,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 21:06,0.0
+2026-07-27 21:05:00,1,20260727-T1-33,36.814297,10.108939,23.7,9.0,outbound,moving,Denden,Mnihla,2026-07-27 21:10,0.0
+2026-07-27 21:05:00,2,20260727-T2-37,36.808917,10.086333,0.0,31.0,outbound,terminal_wait,Manouba,Mnihla,2026-07-27 21:17,0.0
+2026-07-27 21:05:00,3,20260727-T3-30,36.888509,10.117777,45.8,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 21:08,0.0
+2026-07-27 21:05:00,4,20260727-T4-25,36.841543,10.110942,41.7,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 21:06,0.0
+2026-07-27 21:10:00,1,20260727-T1-33,36.847086,10.115569,15.5,9.0,outbound,moving,Denden,Mnihla,2026-07-27 21:10,0.0
+2026-07-27 21:10:00,2,20260727-T2-37,36.81021,10.087204,22.1,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 21:17,0.0
+2026-07-27 21:10:00,3,20260727-T3-30,36.884032,10.135992,0.0,127.0,inbound,at_station,Borj Louzir,Ariana,2026-07-27 21:25,0.3
+2026-07-27 21:10:00,4,20260727-T4-25,36.84946,10.120072,32.4,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 21:15,0.7
+2026-07-27 21:15:00,1,20260727-T1-33,36.856078,10.137355,64.3,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 21:28,0.3
+2026-07-27 21:15:00,2,20260727-T2-37,36.8433,10.112313,40.2,31.0,outbound,moving,Manouba,Mnihla,2026-07-27 21:17,0.0
+2026-07-27 21:15:00,3,20260727-T3-30,36.866519,10.164699,3.8,127.0,inbound,moving,Borj Louzir,Ariana,2026-07-27 21:25,0.0
+2026-07-27 21:15:00,4,20260727-T4-25,36.865225,10.161434,30.1,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 21:15,0.7
+2026-07-27 21:20:00,1,20260727-T1-34,36.86654,10.164707,0.0,245.0,inbound,terminal_wait,Ariana,Mnihla,2026-07-27 21:36,0.0
+2026-07-27 21:20:00,2,20260727-T2-37,36.855255,10.119914,50.8,24.0,outbound,moving,Mnihla,Borj Louzir,2026-07-27 21:35,0.0
+2026-07-27 21:20:00,3,20260727-T3-31,36.86647,10.164678,0.0,307.0,outbound,terminal_wait,Ariana,Borj Louzir,2026-07-27 21:30,0.0
+2026-07-27 21:20:00,4,20260727-T4-25,36.87602,10.168431,42.7,17.0,outbound,moving,Ariana,Raoued,2026-07-27 21:36,0.8
+2026-07-27 21:25:00,1,20260727-T1-34,36.866426,10.164691,0.0,245.0,inbound,terminal_wait,Ariana,Mnihla,2026-07-27 21:36,0.0
+2026-07-27 21:25:00,2,20260727-T2-38,36.88399,10.135998,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 21:42,0.0
+2026-07-27 21:25:00,3,20260727-T3-31,36.866497,10.164717,0.0,307.0,outbound,terminal_wait,Ariana,Borj Louzir,2026-07-27 21:30,0.0
+2026-07-27 21:25:00,4,20260727-T4-25,36.914425,10.183378,44.3,17.0,outbound,moving,Ariana,Raoued,2026-07-27 21:36,0.8
+2026-07-27 21:30:00,1,20260727-T1-34,36.865643,10.16242,26.7,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 21:36,0.0
+2026-07-27 21:30:00,2,20260727-T2-38,36.883994,10.136039,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 21:42,0.0
+2026-07-27 21:30:00,3,20260727-T3-31,36.883941,10.136063,7.1,307.0,outbound,moving,Ariana,Borj Louzir,2026-07-27 21:30,0.0
+2026-07-27 21:30:00,4,20260727-T4-26,36.923417,10.186882,0.0,197.0,inbound,terminal_wait,Raoued,Ariana,2026-07-27 21:47,0.0
+2026-07-27 21:35:00,1,20260727-T1-34,36.849125,10.119155,33.2,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 21:36,0.0
+2026-07-27 21:35:00,2,20260727-T2-38,36.883963,10.135981,0.0,204.0,inbound,terminal_wait,Borj Louzir,Mnihla,2026-07-27 21:42,0.0
+2026-07-27 21:35:00,3,20260727-T3-31,36.887472,10.121949,41.2,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 21:56,0.3
+2026-07-27 21:35:00,4,20260727-T4-26,36.923424,10.186926,0.0,197.0,inbound,terminal_wait,Raoued,Ariana,2026-07-27 21:47,0.0
+2026-07-27 21:40:00,1,20260727-T1-34,36.83564,10.11324,60.9,189.0,inbound,moving,Mnihla,Denden,2026-07-27 21:43,0.0
+2026-07-27 21:40:00,2,20260727-T2-38,36.85557,10.120024,49.8,204.0,inbound,moving,Borj Louzir,Mnihla,2026-07-27 21:42,0.0
+2026-07-27 21:40:00,3,20260727-T3-31,36.89989,10.071795,62.0,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 21:56,0.3
+2026-07-27 21:40:00,4,20260727-T4-26,36.910582,10.181868,53.8,197.0,inbound,moving,Raoued,Ariana,2026-07-27 21:47,0.0
+2026-07-27 21:45:00,1,20260727-T1-34,36.812773,10.108477,10.1,258.0,inbound,moving,Denden,Manouba,2026-07-27 21:58,0.0
+2026-07-27 21:45:00,2,20260727-T2-38,36.842336,10.111558,40.7,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 21:51,0.1
+2026-07-27 21:45:00,3,20260727-T3-31,36.909437,10.033381,16.9,287.0,outbound,moving,Borj Louzir,Sidi Thabet,2026-07-27 21:56,0.3
+2026-07-27 21:45:00,4,20260727-T4-26,36.871264,10.166557,33.5,197.0,inbound,moving,Raoued,Ariana,2026-07-27 21:47,0.0
+2026-07-27 21:50:00,1,20260727-T1-35,36.808896,10.086354,0.0,78.0,outbound,terminal_wait,Manouba,Denden,2026-07-27 22:01,0.0
+2026-07-27 21:50:00,2,20260727-T2-38,36.810111,10.087196,21.6,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 21:51,0.1
+2026-07-27 21:50:00,3,20260727-T3-32,36.910046,10.031,0.0,107.0,inbound,terminal_wait,Sidi Thabet,Borj Louzir,2026-07-27 22:11,0.0
+2026-07-27 21:50:00,4,20260727-T4-26,36.864403,10.159372,38.7,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 21:55,0.0
+2026-07-27 21:55:00,1,20260727-T1-35,36.808835,10.08629,0.0,78.0,outbound,terminal_wait,Manouba,Denden,2026-07-27 22:01,0.0
+2026-07-27 21:55:00,3,20260727-T3-32,36.909998,10.030941,0.0,107.0,inbound,terminal_wait,Sidi Thabet,Borj Louzir,2026-07-27 22:11,0.0
+2026-07-27 21:55:00,4,20260727-T4-26,36.848866,10.118465,28.9,245.0,inbound,moving,Ariana,Mnihla,2026-07-27 21:55,0.0
+2026-07-27 22:00:00,1,20260727-T1-35,36.8113,10.099942,55.5,78.0,outbound,moving,Manouba,Denden,2026-07-27 22:01,0.0
+2026-07-27 22:00:00,3,20260727-T3-32,36.906996,10.04329,39.6,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 22:11,0.0
+2026-07-27 22:00:00,4,20260727-T4-26,36.834685,10.105746,56.5,211.0,inbound,moving,Mnihla,Manouba,2026-07-27 22:04,0.0
+2026-07-27 22:05:00,1,20260727-T1-35,36.824619,10.11103,56.1,9.0,outbound,moving,Denden,Mnihla,2026-07-27 22:08,0.3
+2026-07-27 22:05:00,3,20260727-T3-32,36.895216,10.090661,58.0,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 22:11,0.0
+2026-07-27 22:10:00,1,20260727-T1-35,36.847987,10.116322,14.5,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 22:17,0.0
+2026-07-27 22:10:00,3,20260727-T3-32,36.885186,10.131349,25.3,107.0,inbound,moving,Sidi Thabet,Borj Louzir,2026-07-27 22:11,0.0
+2026-07-27 22:15:00,1,20260727-T1-35,36.864498,10.159542,39.4,64.0,outbound,moving,Mnihla,Ariana,2026-07-27 22:17,0.0
+2026-07-27 22:15:00,3,20260727-T3-32,36.878518,10.144948,59.9,127.0,inbound,moving,Borj Louzir,Ariana,2026-07-27 22:18,0.3`;
+
+const map = L.map('map').setView([36.8160, 10.1015], 12);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  maxZoom:19,
+  attribution:'© OpenStreetMap contributors'
+}).addTo(map);
+
+let marker=null, line=null, rows=[], cols={}, byTrain={}, cur=[], timer=null;
+const $=id=>document.getElementById(id);
+
+function parseCSV(txt){
+  const lines=txt.trim().split(/\r?\n/);
+  const d=[',',';','\t'].sort((a,b)=>lines[0].split(b).length-lines[0].split(a).length)[0];
+  const h=lines[0].split(d).map(s=>s.trim().replace(/^"|"$/g,''));
+  return {
+    h,
+    data:lines.slice(1).map(l=>{
+      const v=l.split(d).map(s=>s.trim().replace(/^"|"$/g,''));
+      const o={};
+      h.forEach((k,i)=>o[k]=v[i] ?? '');
+      return o;
+    })
+  };
+}
+
+function find(h,re){return h.find(k=>re.test(k.toLowerCase()))}
+
+function toMs(v){
+  if(v==='' || v==null) return NaN;
+  const n=Number(v);
+  if(!isNaN(n)) return n<1e11?n*1000:n;
+  return Date.parse(v);
+}
+
+function load(txt){
+  $('msg').textContent='';
+  const {h,data}=parseCSV(txt);
+
+  cols={
+    time:find(h,/time|date|stamp|heure|timestamp/),
+    train:find(h,/train|trip|vehicle|id/),
+    lat:find(h,/^lat|latitude/),
+    lon:find(h,/^lon|lng|longitude/),
+    next:find(h,/next.*(stop|station)|(stop|station).*next|next/),
+    eta:find(h,/eta|arriv/),
+    delay:find(h,/delay|retard/)
+  };
+
+  if(!cols.lat||!cols.lon||!cols.time){
+    $('msg').textContent='ما لقيتش أعمدة الوقت/الإحداثيات.';
+    return;
+  }
+
+  byTrain={};
+
+  data.forEach(o=>{
+    const ms=toMs(o[cols.time]);
+    const la=parseFloat(o[cols.lat]);
+    const lo=parseFloat(o[cols.lon]);
+
+    if(isNaN(ms)||isNaN(la)||isNaN(lo)) return;
+
+    const k=cols.train ? (o[cols.train] || '1') : '1';
+    (byTrain[k]=byTrain[k]||[]).push({ms,la,lo,o});
+  });
+
+  const ids=Object.keys(byTrain);
+
+  if(!ids.length){
+    $('msg').textContent='ما لقيتش بيانات صالحة.';
+    return;
+  }
+
+  $('train').innerHTML=ids.map((k,i)=>
+    `<option value="${k}">قطار ${i+1}</option>`
+  ).join('');
+
+  pick();
+}
+
+
+/* Every train keeps its own route color so routes are immediately distinguishable. */
+const TRAIN_COLORS = ['#ef6a3a','#5a8dee','#22a879','#b66ad8','#d7a33e','#e85d86'];
+function trainColor(trainId){
+  const n=parseInt(trainId,10);
+  return TRAIN_COLORS[(isNaN(n)?0:n-1)%TRAIN_COLORS.length];
+}
+function applyTrainColor(){
+  const c=trainColor($('train').value);
+  $('train').style.borderColor=c;
+  $('train').style.boxShadow='0 0 0 2px '+c+'22';
+  const btn=$('play');
+  btn.style.background=c;
+  if(line) line.setStyle({color:c});
+  if(marker) marker.setOpacity(1);
+  if(doneLine) doneLine.setStyle({color:c});
+  document.documentElement.style.setProperty('--tc',c);
+}
+
+function pick(){
+  stop();
+
+  cur=byTrain[$('train').value].sort((a,b)=>a.ms-b.ms);
+
+  const s=$('slider');
+  s.max=Math.max(0,cur.length-1);
+  s.value=0;
+  s.disabled=false;
+
+  if(line) map.removeLayer(line);
+
+  line=L.polyline(
+    cur.map(p=>[p.la,p.lo]),
+    {color:trainColor($('train').value),weight:4,opacity:.6,className:'route-ghost'}
+  ).addTo(map);
+
+  if(cur.length){
+    map.fitBounds(line.getBounds(),{padding:[30,30],animate:true,duration:1.2});
+  }
+
+  buildExtras();
+  show(0);
+  applyTrainColor();
+}
+
+function fmt(ms){
+  return new Date(ms).toLocaleTimeString('fr-TN',{
+    hour:'2-digit',
+    minute:'2-digit'
+  });
+}
+
+function show(i){
+  const p=cur[i];
+  if(!p) return;
+
+  if(!marker) marker=L.marker([p.la,p.lo],{icon:trainIcon}).addTo(map);
+  else marker.setLatLng([p.la,p.lo]);
+
+  marker.bindTooltip('🚆 القطار '+$('train').value,{direction:'top'});
+
+  $('t').textContent=fmt(p.ms);
+
+  const nx=cols.next ? p.o[cols.next] : null;
+  $('next').textContent=nx || 'غير متوفرة';
+
+  let eta='—';
+  if(cols.eta && p.o[cols.eta]){
+    const m=toMs(p.o[cols.eta]);
+    eta=isNaN(m) ? p.o[cols.eta] : fmt(m);
+  }
+  $('eta').textContent=eta;
+
+  const dl=cols.delay ? parseFloat(p.o[cols.delay]) : NaN;
+  if(isNaN(dl)){
+    $('delay').textContent='—';
+  }else{
+    const c=dl>5?'🔴':dl>0?'🟠':'🟢';
+    $('delay').textContent=c+' '+dl+' د';
+  }
+
+  $('slider').value=i;
+  afterShow(i);
+}
+
+function stop(){
+  clearInterval(timer);
+  timer=null;
+  $('play').textContent='▶ تشغيل';
+}
+
+$('train').onchange=pick;
+$('slider').oninput=e=>show(+e.target.value);
+
+$('play').onclick=()=>{
+  if(timer){stop();return;}
+  if(!cur.length)return;
+
+  $('play').textContent='⏸ إيقاف';
+
+  timer=setInterval(()=>{
+    let i=+$('slider').value+1;
+    if(i>=cur.length){stop();return;}
+    show(i);
+  },1000 / +$('speed').value);
+};
+
+/* ===== V2 MOTION ENGINE ===== */
+const trainIcon=L.divIcon({className:'tp-wrap',html:'<div class="tp"><i></i><i></i><b>🚆</b></div>',iconSize:[44,44],iconAnchor:[22,22]});
+let doneLine=null,stnMarks=[];
+function stnIcon(c){return L.divIcon({className:'',html:'<div class="stn" style="background:'+c+'"></div>',iconSize:[16,16],iconAnchor:[8,8]})}
+function buildExtras(){renderSections();
+  if(doneLine)map.removeLayer(doneLine);
+  stnMarks.forEach(m=>map.removeLayer(m));stnMarks=[];
+  const c=trainColor($('train').value);
+  doneLine=L.polyline([],{color:c,weight:6,opacity:1,className:'route-done'}).addTo(map);
+  if(cur.length){
+    const a=cur[0],b=cur[cur.length-1];
+    stnMarks=[L.marker([a.la,a.lo],{icon:stnIcon('#16845b'),interactive:false}).addTo(map),
+              L.marker([b.la,b.lo],{icon:stnIcon(c),interactive:false}).addTo(map)];
+  }
+}
+function afterShow(i){fx(i);
+  if(doneLine)doneLine.setLatLngs(cur.slice(0,i+1).map(p=>[p.la,p.lo]));
+  const s=$('slider'),mx=+s.max||1;s.style.setProperty('--p',(i/mx*100)+'%');
+  if(timer&&marker&&!map.getBounds().pad(-.15).contains(marker.getLatLng()))map.panTo(marker.getLatLng(),{animate:true,duration:.9});
+}
+/* flash on value change */
+['t','next','eta','delay'].forEach(id=>{
+  new MutationObserver(()=>{const e=$(id);e.classList.remove('tick');void e.offsetWidth;e.classList.add('tick')}).observe($(id),{childList:true});
+});
+/* play state + smooth glide */
+new MutationObserver(()=>{
+  const on=$('play').textContent.includes('⏸');
+  $('play').classList.toggle('playing',on);
+  $('map').classList.toggle('gliding',on);
+}).observe($('play'),{childList:true});
+map.on('zoomstart',()=>$('map').classList.remove('gliding'));
+map.on('zoomend',()=>{if($('play').classList.contains('playing'))$('map').classList.add('gliding')});
+/* ripple */
+document.addEventListener('pointerdown',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  const r=b.getBoundingClientRect(),d=Math.max(r.width,r.height),s=document.createElement('span');
+  s.className='rp';s.style.cssText='width:'+d+'px;height:'+d+'px;left:'+(e.clientX-r.left-d/2)+'px;top:'+(e.clientY-r.top-d/2)+'px';
+  b.appendChild(s);setTimeout(()=>s.remove(),700);
+});
+/* splash extras */
+(function(){
+  function split(el,k){el.childNodes.forEach(n=>{
+    if(n.nodeType===3){const f=document.createDocumentFragment();[...n.textContent].forEach(ch=>{if(ch===' '){f.append(' ');return}const i=document.createElement('i');i.className='ch';i.style.setProperty('--i',k.n++);i.textContent=ch;f.append(i)});n.replaceWith(f)}
+    else if(n.nodeType===1)split(n,k)})}
+  split(document.querySelector('.launch-copy h1'),{n:0});
+  const bg=document.querySelector('.launch-bg');
+  for(let i=0;i<26;i++){const p=document.createElement('i');p.className='pt';p.style.cssText='left:'+Math.random()*100+'%;--x:'+(Math.random()*80-40)+'px;animation-duration:'+(4+Math.random()*6)+'s;animation-delay:'+Math.random()*5+'s';bg.appendChild(p)}
+  const lp=document.querySelector('.launch-progress');lp.insertAdjacentHTML('beforeend','<div id="lstat"></div>');
+  const st=['CONNEXION AU RÉSEAU…','CHARGEMENT DES GARES…','CALCUL DES TRAJETS…','PRÊT ✓'],ls=$('lstat');
+  st.forEach((t,i)=>setTimeout(()=>{ls.textContent=t;ls.classList.toggle('ok',i==3)},700+i*700));
+})();
+/* reveal after splash */
+(function(){
+  const els=[...document.querySelectorAll('header,.welcome,.section-label,.controls,.panel:not(.controls),#map,.legend,.card')];
+  const kids=new Map();
+  els.forEach(e=>{const p=e.parentElement;const k=kids.get(p)||0;kids.set(p,k+1);e.style.setProperty('--d',e.classList.contains('card')?k:Math.min(k,5));e.classList.add('rv')});
+  let started=false;
+  function go(){if(started)return;started=true;
+    const io=new IntersectionObserver(es=>es.forEach(x=>{if(x.isIntersecting){x.target.classList.add('in');io.unobserve(x.target)}}),{threshold:.12});
+    els.forEach(e=>io.observe(e));
+    setTimeout(()=>{map.invalidateSize();if(line)map.fitBounds(line.getBounds(),{padding:[30,30],animate:true,duration:1.4})},900);
+  }
+  new MutationObserver(()=>{if($('splash').classList.contains('hide'))go()}).observe($('splash'),{attributes:true});
+})();
+
+/* ===== V3 COSMOS ENGINE ===== */
+document.body.classList.add('cosmos');
+try{if(localStorage.getItem('tm_mode')==='day')document.body.classList.remove('cosmos')}catch(e){}
+document.body.insertAdjacentHTML('afterbegin','<canvas id="stars"></canvas><div class="planet"></div><div id="sp"></div><div id="cur"></div>');
+document.body.insertAdjacentHTML('beforeend','<div id="toast"></div><canvas id="fw"></canvas>');
+const mb=document.getElementById('mode');
+function mlab(){mb.textContent=document.body.classList.contains('cosmos')?'☀️':'🌌'}mlab();
+mb.onclick=()=>{document.body.classList.toggle('cosmos');mlab();try{localStorage.setItem('tm_mode',document.body.classList.contains('cosmos')?'night':'day')}catch(e){}};
+/* stars */
+(function(){
+  const cv=$('stars'),cx=cv.getContext('2d');let W,H,st=[],mx=0,my=0,sh=null;
+  function rs(){W=cv.width=innerWidth;H=cv.height=innerHeight;st=Array.from({length:Math.min(240,W*H/6000|0)},()=>({x:Math.random()*W,y:Math.random()*H,z:Math.random()*.9+.1,t:Math.random()*6}))}
+  rs();addEventListener('resize',rs);
+  addEventListener('pointermove',e=>{mx=e.clientX/W-.5;my=e.clientY/H-.5});
+  (function loop(){requestAnimationFrame(loop);if(!document.body.classList.contains('cosmos'))return;
+    cx.clearRect(0,0,W,H);
+    st.forEach(s=>{s.t+=.03;cx.fillStyle='rgba(255,255,255,'+(.35+.65*Math.abs(Math.sin(s.t)))*s.z+')';cx.beginPath();cx.arc((s.x-mx*50*s.z+W)%W,(s.y-my*50*s.z+H)%H,s.z*1.7,0,7);cx.fill()});
+    if(!sh&&Math.random()<.007)sh={x:Math.random()*W*.8,y:Math.random()*H*.4,l:0};
+    if(sh){const g=cx.createLinearGradient(sh.x,sh.y,sh.x-110,sh.y-55);g.addColorStop(0,'#fff');g.addColorStop(1,'transparent');cx.strokeStyle=g;cx.lineWidth=2;cx.beginPath();cx.moveTo(sh.x,sh.y);cx.lineTo(sh.x-110,sh.y-55);cx.stroke();sh.x+=16;sh.y+=8;if(++sh.l>55)sh=null}
+  })();
+})();
+/* cursor glow, scroll bar, 3D tilt */
+(function(){
+  const c=$('cur');let tx=0,ty=0,x=0,y=0;
+  addEventListener('pointermove',e=>{tx=e.clientX;ty=e.clientY});
+  (function f(){requestAnimationFrame(f);x+=(tx-x)*.12;y+=(ty-y)*.12;c.style.transform='translate('+x+'px,'+y+'px)'})();
+  addEventListener('scroll',()=>{const m=document.documentElement.scrollHeight-innerHeight;$('sp').style.transform='scaleX('+(m>0?scrollY/m:0)+')'},{passive:true});
+  document.querySelectorAll('.card,.welcome').forEach(e=>{
+    e.addEventListener('pointermove',v=>{if(!e.classList.contains('in')||v.pointerType==='touch')return;const r=e.getBoundingClientRect(),px=(v.clientX-r.left)/r.width-.5,py=(v.clientY-r.top)/r.height-.5;e.style.transition='transform .12s';e.style.transform='perspective(700px) rotateX('+(-py*12)+'deg) rotateY('+(px*14)+'deg) translateZ(8px)'});
+    e.addEventListener('pointerleave',()=>{e.style.transition='';e.style.transform=''});
+  });
+})();
+/* gauge + progress cards */
+(function(){
+  const inf=document.querySelector('.info');
+  inf.insertAdjacentHTML('beforeend','<div class="card gauge rv"><small>السرعة</small><svg viewBox="0 0 100 60"><defs><linearGradient id="gg"><stop offset="0" stop-color="#27d3ff"/><stop offset="1" stop-color="#ef6a3a"/></linearGradient></defs><path class="gbg" d="M10 55A40 40 0 0 1 90 55"/><path class="gfill" id="gf" d="M10 55A40 40 0 0 1 90 55"/></svg><b id="spd">—</b></div><div class="card gauge rv"><small>تقدّم الرحلة</small><svg class="ring" viewBox="0 0 44 44"><circle class="gbg" cx="22" cy="22" r="18" style="stroke-width:5"/><circle class="rfill" id="rf" cx="22" cy="22" r="18" style="stroke-width:5"/></svg><b id="pct">0%</b></div>');
+  inf.querySelectorAll('.rv:not(.in)').forEach((e,i)=>{e.style.setProperty('--d',4+i);setTimeout(()=>e.classList.add('in'),5200+i*150)});
+})();
+/* fx on each step */
+const fwc=$('fw'),fx2=fwc.getContext('2d');let fps=[],arrived=false,lastNext=null,tt;
+function toast(t){const e=$('toast');e.textContent=t;e.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('show'),2600)}
+function burst(){fwc.width=innerWidth;fwc.height=innerHeight;
+  for(let b=0;b<4;b++)setTimeout(()=>{const x=innerWidth*(.2+Math.random()*.6),y=innerHeight*(.2+Math.random()*.3),h=Math.random()*360;
+    for(let i=0;i<60;i++){const a=Math.PI*2*i/60,v=2+Math.random()*4;fps.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:1,c:'hsl('+(h+Math.random()*40)+',100%,65%)'})}},b*350);
+  if(fps.run)return;fps.run=true;
+  (function f(){fx2.clearRect(0,0,fwc.width,fwc.height);fps.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.07;p.vx*=.99;p.l-=.011;fx2.globalAlpha=Math.max(p.l,0);fx2.fillStyle=p.c;fx2.fillRect(p.x,p.y,3,3)});fps=Object.assign(fps.filter(p=>p.l>0),{run:true});
+    if(fps.length||Date.now()%2)requestAnimationFrame(f);else{fps.run=false;fx2.clearRect(0,0,fwc.width,fwc.height)}})();
+}
+function fx(i){updSec(i);
+  const last=cur.length-1,mx=last||1,p=cur[i];if(!p)return;
+  const c=trainColor($('train').value);
+  const sp=cols&&p.o.speed_kmh!==undefined?parseFloat(p.o.speed_kmh):NaN;
+  if($('gf')){$('gf').style.strokeDashoffset=125.66*(1-Math.min((isNaN(sp)?0:sp)/80,1));$('spd').textContent=isNaN(sp)?'—':Math.round(sp)+' km/h';
+    $('rf').style.strokeDashoffset=113.1*(1-i/mx);$('pct').textContent=Math.round(i/mx*100)+'%'}
+  if(timer&&marker){const s=L.circleMarker(marker.getLatLng(),{radius:5,weight:0,fillColor:c,fillOpacity:.9,className:'spark',interactive:false}).addTo(map);setTimeout(()=>map.removeLayer(s),1300)}
+  const nx=$('next').textContent;if(lastNext!==null&&nx!==lastNext&&nx&&nx!=='—'&&nx!=='غير متوفرة')toast('🚉 المحطة التالية: '+nx);lastNext=nx;
+  if(i===last&&last>0&&!arrived&&timer){arrived=true;toast('🎉 وصل القطار!');burst()}if(i<last)arrived=false;
+}
+/* ===== V4 REALISTIC SCENE ===== */
+(function(){
+  const cv=document.createElement('canvas');cv.id='scene';document.body.prepend(cv);const g=cv.getContext('2d');
+  let W,H,t=0,spd=1,trn=null;function rs(){W=cv.width=innerWidth;H=cv.height=innerHeight}rs();addEventListener('resize',rs);
+  const ph=[...Array(12)].map(()=>Math.random()*6.28),R=Math.random;
+  const hill=(x,l)=>Math.sin(x*.0021+ph[l])*.5+Math.sin(x*.0057+ph[l+3])*.3+Math.sin(x*.0131+ph[l+6])*.2;
+  const stars=[...Array(160)].map(()=>({x:R(),y:R()*.6,r:R()*1.2+.2,p:R()*6}));
+  const clouds=[...Array(6)].map(()=>({x:R()*1.5,y:.07+R()*.28,s:.6+R()*.9,v:.5+R()}));
+  const lights=[...Array(90)].map(()=>({x:R()*2600,y:R(),p:R()*6}));
+  const L=[{b:.6,a:.13,f:.12,n:['#1b1e47','#8fb0d4']},{b:.69,a:.1,f:.3,n:['#121634','#789bb8']},{b:.77,a:.07,f:.6,n:['#0a0c22','#5b8160']}];
+  function frame(){requestAnimationFrame(frame);
+    const nt=document.body.classList.contains('cosmos'),pl=!!timer,gy=H*.88;
+    spd+=((pl?4.5:1)-spd)*.03;t+=spd;
+    let k=g.createLinearGradient(0,0,0,H);
+    if(nt){k.addColorStop(0,'#02040d');k.addColorStop(.5,'#0c1332');k.addColorStop(.8,'#2b2454');k.addColorStop(1,'#6a4263')}
+    else{k.addColorStop(0,'#4f9be4');k.addColorStop(.6,'#bfe0f5');k.addColorStop(1,'#fde6c8')}
+    g.fillStyle=k;g.fillRect(0,0,W,H);
+    if(nt)stars.forEach(s=>{g.fillStyle='rgba(255,255,255,'+(.35+.65*Math.abs(Math.sin(t*.02+s.p)))+')';g.beginPath();g.arc(s.x*W,s.y*H,s.r,0,7);g.fill()});
+    const mx=W*.78,my=H*.18,rg=g.createRadialGradient(mx,my,0,mx,my,nt?170:240);
+    if(nt){rg.addColorStop(0,'rgba(255,246,220,.55)');rg.addColorStop(.25,'rgba(190,205,255,.12)');rg.addColorStop(1,'transparent')}
+    else{rg.addColorStop(0,'rgba(255,244,200,1)');rg.addColorStop(.2,'rgba(255,222,150,.4)');rg.addColorStop(1,'transparent')}
+    g.fillStyle=rg;g.fillRect(0,0,W,H);
+    g.fillStyle=nt?'#f6f0e0':'#fffbe8';g.beginPath();g.arc(mx,my,nt?26:32,0,7);g.fill();
+    if(nt){g.fillStyle='rgba(140,140,155,.35)';g.beginPath();g.arc(mx-8,my-6,6,0,7);g.arc(mx+9,my+8,4,0,7);g.arc(mx+4,my-10,3,0,7);g.fill()}
+    clouds.forEach(c=>{c.x=(c.x+c.v*spd*.00009)%1.6;for(let j=0;j<6;j++){const x=c.x*W-250+j*46*c.s,y=c.y*H+Math.sin(j*1.7)*14*c.s,r=62*c.s,q=g.createRadialGradient(x,y,0,x,y,r);
+      q.addColorStop(0,nt?'rgba(110,120,190,.13)':'rgba(255,255,255,.6)');q.addColorStop(1,'transparent');g.fillStyle=q;g.fillRect(x-r,y-r,r*2,r*2)}});
+    L.forEach((l,i)=>{const off=t*l.f,by=H*l.b,am=H*l.a;
+      const fg=g.createLinearGradient(0,by-am,0,H);fg.addColorStop(0,nt?l.n[0]:l.n[1]);fg.addColorStop(1,nt?'#1c1a40':'#cfe0e8');
+      g.fillStyle=fg;g.beginPath();g.moveTo(0,H);for(let x=0;x<=W+10;x+=10)g.lineTo(x,by+hill(x+off,i)*am);g.lineTo(W,H);g.fill();
+      if(nt&&i===1)lights.forEach(o=>{const x=((o.x-off)%W+W)%W,y=by+hill(x+off,1)*am+6+o.y*38;g.fillStyle='rgba(255,'+(190+o.p*8|0)+',110,'+(.45+.5*Math.sin(t*.05+o.p))+')';g.fillRect(x,y,2,2)})});
+    const fb=g.createLinearGradient(0,gy-120,0,gy);fb.addColorStop(0,'transparent');fb.addColorStop(1,nt?'rgba(120,110,170,.22)':'rgba(255,255,255,.5)');g.fillStyle=fb;g.fillRect(0,gy-120,W,120);
+    const gr=g.createLinearGradient(0,gy,0,H);gr.addColorStop(0,nt?'#14121f':'#6b6256');gr.addColorStop(1,nt?'#06050c':'#3d372f');g.fillStyle=gr;g.fillRect(0,gy,W,H-gy);
+    g.fillStyle=nt?'#0a0910':'#2c2721';const so=(t*7)%30;for(let x=-30;x<W+30;x+=30)g.fillRect(x-so,gy+8,12,5);
+    g.fillStyle=nt?'#6a7088':'#8b9099';g.fillRect(0,gy+6,W,1.5);g.fillRect(0,gy+14,W,1.5);
+    const po=(t*3.6)%260;g.strokeStyle=nt?'#05060e':'#2b2f38';g.lineWidth=3;
+    for(let x=-260+(-po);x<W+520;x+=260){g.beginPath();g.moveTo(x,gy+8);g.lineTo(x,gy-150);g.moveTo(x-22,gy-142);g.lineTo(x+22,gy-142);g.stroke();
+      g.lineWidth=1.2;g.beginPath();g.moveTo(x,gy-142);g.quadraticCurveTo(x+130,gy-120,x+260,gy-142);g.stroke();g.lineWidth=3}
+    if(!trn&&R()<.004)trn={x:-1000};
+    if(trn){trn.x+=(5+spd*3);const f=g.createLinearGradient(0,gy-70,0,gy+10);
+      for(let c=0;c<6;c++){const x0=trn.x+c*160,lc=c===5;
+        g.fillStyle=nt?'#1a1e34':'#e3e7ee';g.beginPath();g.roundRect(x0,gy-64,lc?150:156,70,lc?[6,26,0,0]:6);g.fill();
+        g.fillStyle='#ef6a3a';g.fillRect(x0,gy-14,lc?150:156,7);
+        for(let w=0;w<5&&!lc||lc&&w<3;w++){const wx=x0+10+w*29;g.fillStyle=nt?'rgba(255,214,130,.95)':'rgba(120,170,210,.85)';g.fillRect(wx,gy-50,20,20);
+          if(nt){const q=g.createLinearGradient(0,gy+6,0,gy+40);q.addColorStop(0,'rgba(255,200,110,.18)');q.addColorStop(1,'transparent');g.fillStyle=q;g.fillRect(wx-3,gy+6,26,34)}}
+        g.fillStyle='#0b0c14';[20,60,100,134].forEach(o=>{g.beginPath();g.arc(x0+o,gy+8,6,0,7);g.fill()})}
+      if(nt){const hx=trn.x+6*160-4,q=g.createRadialGradient(hx,gy-30,0,hx,gy-30,260);q.addColorStop(0,'rgba(255,245,210,.55)');q.addColorStop(1,'transparent');g.fillStyle=q;g.fillRect(hx-20,gy-200,420,300)}
+      if(trn.x>W+80)trn=null}
+    const v=g.createRadialGradient(W/2,H/2,H*.35,W/2,H/2,H*.95);v.addColorStop(0,'transparent');v.addColorStop(1,nt?'rgba(0,0,10,.55)':'rgba(40,30,20,.18)');g.fillStyle=v;g.fillRect(0,0,W,H);
+  }
+  frame();
+})();
+/* ===== V4 SECTIONS ===== */
+$('msg').insertAdjacentHTML('beforebegin','<div id="more"></div>');
+const hav=(a,b)=>{const r=Math.PI/180,x=Math.sin((b.la-a.la)*r/2)**2+Math.cos(a.la*r)*Math.cos(b.la*r)*Math.sin((b.lo-a.lo)*r/2)**2;return 12742*Math.asin(Math.sqrt(x))};
+let tlEv=[],chL=1;
+function renderSections(){
+  const el=$('more');if(!el||!cur.length)return;
+  const c=trainColor($('train').value),sp=cur.map(p=>parseFloat(p.o.speed_kmh)||0),dl=cur.map(p=>parseFloat(p.o.delay_min)||0);
+  chL=Math.max(cur.length-1,1);
+  let km=0;for(let i=1;i<cur.length;i++)km+=hav(cur[i-1],cur[i]);
+  const mv=sp.filter(v=>v>1),avg=mv.length?mv.reduce((a,b)=>a+b)/mv.length:0,hrs=(cur[cur.length-1].ms-cur[0].ms)/36e5;
+  const st=[['🛤️','المسافة',km,' km',1],['⏱️','مدة التشغيل',hrs,' h',1],['⚡','متوسط السرعة',avg,' km/h',0],['🚀','أقصى سرعة',Math.max(...sp),' km/h',0],['✅','في الموعد',dl.filter(d=>d<=1).length/dl.length*100,'%',0],['⚠️','أكبر تأخير',Math.max(...dl),' د',1]];
+  const msp=Math.max(...sp,10),mdl=Math.max(...dl.map(Math.abs),1),pts=sp.map((v,i)=>(i/chL*600).toFixed(1)+','+(148-v/msp*130).toFixed(1)).join(' ');
+  const bw=Math.max(600/cur.length*.7,1.5);
+  const bars=dl.map((d,i)=>{const h=Math.abs(d)/mdl*60;return '<rect class="bar" style="--i:'+i+'" x="'+(i/chL*600-bw/2).toFixed(1)+'" y="'+(d>=0?80-h:80)+'" width="'+bw+'" height="'+Math.max(h,1)+'" rx="1" fill="'+(d>5?'#ef4444':d>1?'#f59e0b':'#22c55e')+'"/>'}).join('');
+  tlEv=[];let ls=null;cur.forEach((p,i)=>{const s=p.o.last_station;if(s&&s!==ls){tlEv.push({i,s,t:fmt(p.ms),d:p.o.delay_min});ls=s}});
+  const lp=cur[cur.length-1];if(lp.o.next_station&&lp.o.next_station!==ls)tlEv.push({i:chL,s:lp.o.next_station,t:fmt(lp.ms),d:lp.o.delay_min});
+  const net=Object.keys(byTrain).sort().map(k=>{const q=[];byTrain[k].slice().sort((a,b)=>a.ms-b.ms).forEach(p=>[p.o.last_station,p.o.next_station].forEach(s=>{if(s&&q[q.length-1]!==s)q.push(s)}));
+    return '<a class="net gl'+(k===$('train').value?' on':'')+'" data-t="'+k+'" style="--c:'+trainColor(k)+'"><b>🚆 القطار '+k+'</b><div>'+q.slice(0,7).join(' → ')+'</div></a>'}).join('');
+  const cap='<div class="cap"><span>'+fmt(cur[0].ms)+'</span><span>'+fmt(lp.ms)+'</span></div>';
+  el.innerHTML='<div class="sec rv"><h3>📊 ملخص الرحلة</h3><div class="stats">'+st.map(s=>'<div class="stat gl"><i>'+s[0]+'</i><small>'+s[1]+'</small><b data-v="'+s[2]+'" data-d="'+s[4]+'" data-u="'+s[3]+'">0</b></div>').join('')+'</div></div>'
+  +'<div class="sec rv"><h3>⚡ منحنى السرعة</h3><div class="gl"><div class="chart" data-k="s"><svg viewBox="0 0 600 150" preserveAspectRatio="none"><defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+c+'" stop-opacity=".55"/><stop offset="1" stop-color="'+c+'" stop-opacity="0"/></linearGradient></defs><polygon points="0,148 '+pts+' 600,148" fill="url(#ag)"/><polyline class="ln" points="'+pts+'" stroke="'+c+'" stroke-width="2.6" vector-effect="non-scaling-stroke"/><line class="cs" x1="0" x2="0" y1="0" y2="150"/></svg></div>'+cap+'</div></div>'
+  +'<div class="sec rv"><h3>⏳ التأخير على طول الرحلة</h3><div class="gl"><div class="chart" data-k="d"><svg viewBox="0 0 600 160" preserveAspectRatio="none">'+bars+'<line x1="0" x2="600" y1="80" y2="80" stroke="#8a909a66" vector-effect="non-scaling-stroke"/><line class="cs" x1="0" x2="0" y1="0" y2="160"/></svg></div>'+cap+'</div></div>'
+  +'<div class="sec rv"><h3>🚉 المحطات</h3><div class="gl tl"><div class="fillb" id="tlf"></div>'+tlEv.map((e,n)=>'<div class="ti" data-i="'+e.i+'"><b>'+e.s+'</b><span>'+e.t+' · '+(e.d>0?'+':'')+e.d+' د</span></div>').join('')+'</div></div>'
+  +'<div class="sec rv"><h3>🗺️ شبكة القطارات</h3>'+net+'</div>'
+  +'<div class="ft">Train Manouba · CINEMATIC ROUTES<br>اللمسة الأخيرة: كل شيء يتحرك معاك 🚆</div>';
+  const io=new IntersectionObserver(es=>es.forEach(x=>{if(!x.isIntersecting)return;const s=x.target;s.classList.add('in');io.unobserve(s);
+    s.querySelectorAll('[data-v]').forEach(b=>{const v=+b.dataset.v,d=+b.dataset.d,u=b.dataset.u,t0=performance.now();(function f(n){const p=Math.min((n-t0)/1400,1),e=1-Math.pow(1-p,4);b.textContent=(v*e).toFixed(d)+u;if(p<1)requestAnimationFrame(f)})(t0)})}),{threshold:.15});
+  el.querySelectorAll('.rv').forEach(s=>io.observe(s));
+  el.querySelectorAll('.chart').forEach(ch=>{const go=e=>{const r=ch.getBoundingClientRect(),i=Math.round(Math.min(Math.max((e.clientX-r.left)/r.width,0),1)*chL);if(typeof stop==='function')stop();show(i)};let dn=0;ch.onpointerdown=e=>{dn=1;go(e)};ch.onpointermove=e=>{if(dn)go(e)};addEventListener('pointerup',()=>dn=0)});
+  el.querySelectorAll('.ti').forEach(t=>t.onclick=()=>{if(typeof stop==='function')stop();show(+t.dataset.i)});
+  el.querySelectorAll('.net').forEach(n=>n.onclick=()=>{$('train').value=n.dataset.t;$('train').dispatchEvent(new Event('change'));scrollTo({top:0,behavior:'smooth'})});
+  updSec(+$('slider').value||0);
+}
+function updSec(i){
+  document.querySelectorAll('.cs').forEach(l=>{const x=i/chL*600;l.setAttribute('x1',x);l.setAttribute('x2',x)});
+  const it=[...document.querySelectorAll('.ti')];if(!it.length)return;let a=-1;
+  it.forEach((e,n)=>{const d=+e.dataset.i<=i;e.classList.toggle('done',d);if(d)a=n;e.classList.remove('act')});
+  if(a>=0)it[a].classList.add('act');
+  const f=$('tlf');if(f&&a>=0)f.style.height=(it[a].offsetTop+it[a].offsetHeight/2-8)+'px';else if(f)f.style.height='0';
+}
+/* تشغيل البيانات مباشرة عند فتح التطبيق — لا حاجة لاختيار ملف */
+try { load(EMBEDDED_CSV); } catch(e) { $('msg').textContent='صار خطأ في تحميل بيانات القطار.'; console.error(e); }
+
+// افتتاحية التطبيق
+(function(){
+  const sp=document.getElementById('splash');let ts=0,open=false;
+  document.body.classList.add('locked');
+  function enter(){if(open)return;open=true;sp.classList.add('hide');document.body.classList.remove('locked');scrollTo(0,0)}
+  sp.addEventListener('wheel',e=>{if(e.deltaY>8)enter()},{passive:true});
+  sp.addEventListener('touchstart',e=>{ts=e.touches[0].clientY},{passive:true});
+  sp.addEventListener('touchmove',e=>{if(ts-e.touches[0].clientY>25)enter()},{passive:true});
+  sp.addEventListener('click',enter);
+  addEventListener('keydown',e=>{if(['ArrowDown','PageDown',' ','Enter'].includes(e.key)){e.preventDefault();enter()}});
+})();
+
+// تحديد مكان المستخدم من الهاتف/المتصفح.
+// لا نستعمل موقعًا ثابتًا للمستخدم: المتصفح هو الذي يعطي GPS بعد موافقته.
+let userLocationMarker=null;
+let userAccuracyCircle=null;
+
+function locateMe(){
+  if(!navigator.geolocation){
+    $('msg').textContent='المتصفح هذا ما يدعمش تحديد الموقع.';
+    return;
+  }
+  $('msg').textContent='📍 جاري تحديد موقعك...';
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const lat=pos.coords.latitude;
+    const lon=pos.coords.longitude;
+    const acc=pos.coords.accuracy;
+
+    if(userLocationMarker) map.removeLayer(userLocationMarker);
+    if(userAccuracyCircle) map.removeLayer(userAccuracyCircle);
+
+    userLocationMarker=L.circleMarker([lat,lon],{
+      radius:9,
+      color:'#ffffff',
+      weight:3,
+      fillColor:'#2878ff',
+      fillOpacity:1
+    }).addTo(map).bindPopup('📍 أنت هنا').openPopup();
+
+    userAccuracyCircle=L.circle([lat,lon],{
+      radius:acc,
+      color:'#2878ff',
+      weight:1,
+      fillOpacity:.08
+    }).addTo(map);
+
+    map.setView([lat,lon],15);
+    $('msg').textContent='📍 تم تحديد موقعك.';
+  },()=>{
+    $('msg').textContent='ما نجمتش نحدد موقعك. اسمح للتطبيق باستعمال الموقع ثم جرّب مرة أخرى.';
+  },{
+    enableHighAccuracy:true,
+    timeout:10000,
+    maximumAge:0
+  });
+}
+
+$('locate').onclick=locateMe;
+</script>
+</body>
+</html>
